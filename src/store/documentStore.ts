@@ -14,9 +14,9 @@ import type {
   BleedMode,
 } from '@/types/imposition';
 
-const DEFAULT_BOOKLET: BookletConfig = { signatureSize: 0, autoCreep: true, manualCreep: 0, paperGsm: 130 };
-const DEFAULT_MARKS: ProductionMarks = { cropMarks: true, cropMarkLength: 20, cropMarkOffset: 6, cropMarkThickness: 0.25, registrationMarks: false, bleed: 8.5, colorBar: false, colorBarType: 'CMYK', pdfxOutput: false, pdfxProfile: 'FOGRA39', foldMarks: false, bindingStyle: 'none', collatingMarks: false, signatureNumbering: false, overprintPreview: false };
-const DEFAULT_SHEET: SheetConfig = { preset: 'A3', width: 841.89, height: 1190.55, orientation: 'portrait', grainDirection: 'long', margins: 36, gutter: 14, centerContent: true, gripper: { enabled: false, size: 34, side: 'bottom' }, bleedMode: 'none', extendColor: '#ffffff' };
+const DEFAULT_BOOKLET: BookletConfig = { signatureSize: 0, autoCreep: false, manualCreep: 0, paperGsm: 130 };
+const DEFAULT_MARKS: ProductionMarks = { cropMarks: true, cropMarkLength: 20, cropMarkOffset: 6, cropMarkThickness: 0.25, registrationMarks: false, bleed: 0, colorBar: false, colorBarType: 'CMYK', pdfxOutput: false, pdfxProfile: 'FOGRA39', foldMarks: false, bindingStyle: 'none', collatingMarks: false, signatureNumbering: false, overprintPreview: false };
+const DEFAULT_SHEET: SheetConfig = { preset: 'MegaA3', width: 1360.63, height: 935.43, orientation: 'landscape', grainDirection: 'long', margins: 36, gutter: 14, centerContent: true, gripper: { enabled: false, size: 34, side: 'bottom' }, bleedMode: 'none', extendColor: '#ffffff' };
 
 interface DocumentState {
   originalFile: File | null;
