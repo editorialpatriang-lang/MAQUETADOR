@@ -11,7 +11,7 @@ function getLayout(
   pageH: number,
   store: ReturnType<typeof useDocumentStore.getState>,
 ): ImpositionLayout {
-  return calculateBookletLayout(pageCount, pageW, pageH, store.booklet, store.sheet, { creepVisualScale: 50 });
+  return calculateBookletLayout(pageCount, pageW, pageH, store.booklet, store.sheet, { creepVisualScale: 1 });
 }
 
 export function PreviewCanvas() {
@@ -34,12 +34,14 @@ export function PreviewCanvas() {
 
   const renderTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isInitialized = useRef(false);
+  const renderSeq = useRef(0);
 
   const doRender = useCallback(async () => {
     const canvas = canvasRef.current;
     if (!canvas || !originalPdfBytes || pageCount === 0) return;
     if (!isInitialized.current) return;
 
+    const mySeq = ++renderSeq.current;
     const store = useDocumentStore.getState();
     const layout = getLayout(pageCount, originalPageW, originalPageH, store);
 
@@ -67,6 +69,9 @@ export function PreviewCanvas() {
       sH,
       previewScale,
     );
+
+    // Si hubo un render más nuevo, no dibujar el dorso
+    if (mySeq !== renderSeq.current) return;
 
     if (duplexMode && canvasBackRef.current && idx + 1 < layout.sheets.length) {
       const backSheet = layout.sheets[idx + 1];
@@ -97,6 +102,7 @@ export function PreviewCanvas() {
     if (!originalPdfBytes || pageCount === 0) return;
 
     isInitialized.current = false;
+    renderSeq.current++;
     previewEngine.init(originalPdfBytes).then(() => {
       isInitialized.current = true;
       doRender();
@@ -105,6 +111,7 @@ export function PreviewCanvas() {
     return () => {
       previewEngine.dispose();
       isInitialized.current = false;
+      renderSeq.current++;
     };
   }, [originalPdfBytes, pageCount]);
 
@@ -112,7 +119,7 @@ export function PreviewCanvas() {
     if (renderTimeout.current) clearTimeout(renderTimeout.current);
     renderTimeout.current = setTimeout(() => {
       doRender();
-    }, 150);
+    }, 300);
     return () => {
       if (renderTimeout.current) clearTimeout(renderTimeout.current);
     };

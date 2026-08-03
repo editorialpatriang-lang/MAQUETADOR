@@ -19,6 +19,8 @@ export function getPdfJsDoc(): pdfjsLib.PDFDocumentProxy | null {
   return currentDoc;
 }
 
+const MAX_RENDER_PIXELS = 1200; // Máximo de píxeles en el lado más largo para preview
+
 export async function renderPageToCanvas(
   pageIndex: number,
   targetWidth: number,
@@ -35,25 +37,31 @@ export async function renderPageToCanvas(
     const scaleY = targetHeight / baseViewport.height;
     const scale = Math.min(scaleX, scaleY);
 
+    // Limitar la resolución de renderizado para preview (rendimiento)
+    const maxDim = Math.max(targetWidth, targetHeight);
+    const renderScale = maxDim > MAX_RENDER_PIXELS ? MAX_RENDER_PIXELS / maxDim : 1;
+    const renderW = Math.max(1, Math.round(targetWidth * renderScale));
+    const renderH = Math.max(1, Math.round(targetHeight * renderScale));
+
     const canvas = document.createElement('canvas');
-    canvas.width = targetWidth;
-    canvas.height = targetHeight;
+    canvas.width = renderW;
+    canvas.height = renderH;
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
 
     ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, targetWidth, targetHeight);
+    ctx.fillRect(0, 0, renderW, renderH);
 
-    const drawW = baseViewport.width * scale;
-    const drawH = baseViewport.height * scale;
-    const offsetX = (targetWidth - drawW) / 2;
-    const offsetY = (targetHeight - drawH) / 2;
+    const drawW = baseViewport.width * scale * renderScale;
+    const drawH = baseViewport.height * scale * renderScale;
+    const offsetX = (renderW - drawW) / 2;
+    const offsetY = (renderH - drawH) / 2;
 
     // Patrón recomendado por pdf.js: transladar y escalar el contexto
     // antes de renderizar con el viewport base. Evita renders en blanco
     // que ocurren al combinar `transform` con un viewport ya escalado.
     ctx.translate(offsetX, offsetY);
-    ctx.scale(scale, scale);
+    ctx.scale(scale * renderScale, scale * renderScale);
 
     await page.render({
       canvasContext: ctx,

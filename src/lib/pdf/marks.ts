@@ -161,18 +161,21 @@ function drawBookletCropMarks(
     const isLeftPage = cellCenterX < spineX;
     const outerDx = isLeftPage ? -1 : 1;
 
+    // Esquinas exteriores: solo las que están en el borde exterior de la hoja
     const outerCorners = [
       { cx: tx + (isLeftPage ? 0 : tw), cy: ty, dx: outerDx, dy: -1 },
       { cx: tx + (isLeftPage ? 0 : tw), cy: ty + th, dx: outerDx, dy: 1 },
     ];
 
     for (const { cx, cy, dx, dy } of outerCorners) {
+      // Línea vertical (corte lateral)
       overlay.cropLines.push({
         x1: cx + dx * markOffset,
         y1: cy + dy * (markOffset + markLength),
         x2: cx + dx * markOffset,
         y2: cy + dy * markOffset,
       });
+      // Línea horizontal (corte superior/inferior)
       overlay.cropLines.push({
         x1: cx + dx * (markOffset + markLength),
         y1: cy + dy * markOffset,
@@ -180,25 +183,28 @@ function drawBookletCropMarks(
         y2: cy + dy * markOffset,
       });
     }
+
+    // Marcas horizontales en los bordes exteriores superior e inferior
+    // Solo en el borde exterior de cada página (no cruzar el lomo)
+    const topY = ty;
+    const bottomY = ty + th;
+
+    // Borde superior: solo en la esquina exterior
+    overlay.cropLines.push({
+      x1: tx + (isLeftPage ? 0 : tw) + outerDx * markOffset,
+      y1: topY - markOffset,
+      x2: tx + (isLeftPage ? 0 : tw) + outerDx * (markOffset + markLength),
+      y2: topY - markOffset,
+    });
+
+    // Borde inferior: solo en la esquina exterior
+    overlay.cropLines.push({
+      x1: tx + (isLeftPage ? 0 : tw) + outerDx * markOffset,
+      y1: bottomY + markOffset,
+      x2: tx + (isLeftPage ? 0 : tw) + outerDx * (markOffset + markLength),
+      y2: bottomY + markOffset,
+    });
   }
-
-  const leftEdge = Math.min(...validCells.map(c => c.x));
-  const rightEdge = Math.max(...validCells.map(c => c.x + c.width));
-  const topY = validCells[0].y;
-  const bottomY = validCells[0].y + validCells[0].height;
-
-  overlay.cropLines.push({
-    x1: leftEdge,
-    y1: topY - markOffset,
-    x2: rightEdge,
-    y2: topY - markOffset,
-  });
-  overlay.cropLines.push({
-    x1: leftEdge,
-    y1: bottomY + markOffset,
-    x2: rightEdge,
-    y2: bottomY + markOffset,
-  });
 }
 
 function drawBookletFoldLine(

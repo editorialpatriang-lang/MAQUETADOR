@@ -7,14 +7,19 @@ import {
 
 class PreviewEngine {
   private pageCache = new Map<string, HTMLCanvasElement>();
+  private renderVersion = 0;
 
   async init(pdfBytes: ArrayBuffer): Promise<void> {
     this.pageCache.clear();
+    this.renderVersion++;
     await loadPdfJs(pdfBytes);
   }
 
   private cacheKey(pageIndex: number, w: number, h: number): string {
-    return `${pageIndex}_${Math.round(w)}_${Math.round(h)}`;
+    // Usar resolución redondeada a múltiplos de 50 para maximizar hits de cache
+    const rw = Math.round(w / 50) * 50;
+    const rh = Math.round(h / 50) * 50;
+    return `${pageIndex}_${rw}_${rh}`;
   }
 
   async renderSheet(
@@ -28,14 +33,18 @@ class PreviewEngine {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    const version = this.renderVersion;
     canvas.width = Math.round(sheetW * scale);
     canvas.height = Math.round(sheetH * scale);
 
+    // Limpiar completamente el canvas antes de dibujar
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     for (const cell of sheet.cells) {
       if (cell.pageIndex < 0) continue;
+      if (version !== this.renderVersion) return; // Cancelar si hubo un nuevo render
 
       const key = this.cacheKey(cell.pageIndex, cell.width, cell.height);
       let pageCanvas: HTMLCanvasElement | null = this.pageCache.get(key) ?? null;
@@ -192,6 +201,7 @@ class PreviewEngine {
 
   clearCache(): void {
     this.pageCache.clear();
+    this.renderVersion++;
   }
 
   dispose(): void {
