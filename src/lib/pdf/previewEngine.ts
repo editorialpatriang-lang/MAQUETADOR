@@ -181,10 +181,9 @@ class PreviewEngine {
 
     for (const label of marks.signatureLabels) {
       ctx.fillStyle = '#000';
-      ctx.font = `bold ${Math.max(12, 14 * scale)}px Inter, sans-serif`;
-      const textWidth = ctx.measureText(label.text).width;
-      const tx = (label.x * scale) - textWidth / 2;
-      const ty = Math.max(20, label.y * scale);
+      ctx.font = `${Math.max(7, 8 * scale)}px Inter, sans-serif`;
+      const tx = label.x * scale;
+      const ty = label.y * scale;
       ctx.fillText(label.text, tx, ty);
     }
 

@@ -5,7 +5,6 @@ import { Select } from '@/components/ui/Select';
 
 export function MarksControls() {
   const marks = useDocumentStore((s) => s.marks);
-  const impositionType = useDocumentStore((s) => s.impositionType);
   const setMarksConfig = useDocumentStore((s) => s.setMarksConfig);
 
   return (
@@ -58,7 +57,7 @@ export function MarksControls() {
       />
       {marks.foldMarks && (
         <p className="text-xs text-gray-400">
-          Líneas punteadas entre celdas indicando dónde doblar el pliego.
+          Línea punteada en el lomo (centro del pliego) indicando dónde doblar el folleto.
         </p>
       )}
       <Toggle
@@ -99,21 +98,6 @@ export function MarksControls() {
         ]}
       />
 
-      {impositionType === 'perfect-bound' && (
-        <>
-          <Toggle
-            label="Marcas de colación"
-            checked={marks.collatingMarks}
-            onChange={(v) => setMarksConfig({ collatingMarks: v })}
-          />
-          {marks.collatingMarks && (
-            <p className="text-xs text-gray-400">
-              Cuadraditos negros en el lomo que forman una escalera diagonal al apilar los cuadernillos. Permite verificar el orden en encuadernación.
-            </p>
-          )}
-        </>
-      )}
-
       <Toggle
         label="Slug de trabajo"
         checked={marks.signatureNumbering}
@@ -121,7 +105,7 @@ export function MarksControls() {
       />
       {marks.signatureNumbering && (
         <p className="text-xs text-gray-400">
-          Imprime nombre de archivo, fecha, tipo de imposición, cantidad de páginas y dirección de fibra en cada plancha.
+          Imprime nombre de archivo, fecha, pliego, tipo de imposición, páginas y fibra en la esquina inferior izquierda en tipografía pequeña.
         </p>
       )}
 

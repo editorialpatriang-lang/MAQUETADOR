@@ -1,4 +1,4 @@
-import type { ProductionMarks, MarksOverlay, CmykColor, NUpCell, ImpositionType } from '@/types/imposition';
+import type { ProductionMarks, MarksOverlay, CmykColor, NUpCell } from '@/types/imposition';
 
 interface ColorBarPatch {
   c: string;
@@ -33,14 +33,10 @@ export function calculateMarks(
   cells: NUpCell[],
   sheetIndex?: number,
   totalSheets?: number,
-  impositionType?: ImpositionType,
-  signatureIndex?: number,
-  totalSignatures?: number,
   slugMeta?: { fileName?: string; grainDirection?: string; pageCount?: number; pdfxProfile?: string },
 ): MarksOverlay {
   const markLength = config.cropMarkLength;
   const markOffset = config.cropMarkOffset;
-  const isBooklet = impositionType === 'booklet' || impositionType === 'perfect-bound';
 
   const overlay: MarksOverlay = {
     cropLineThickness: config.cropMarkThickness,
@@ -55,15 +51,7 @@ export function calculateMarks(
   };
 
   if (config.cropMarks) {
-    if (config.collatingMarks && impositionType === 'perfect-bound' && signatureIndex !== undefined && totalSignatures !== undefined && totalSignatures > 1) {
-    drawCollatingMarks(overlay, cells, signatureIndex, totalSignatures, margins, sheetH);
-  }
-
-  if (isBooklet) {
-      drawBookletCropMarks(overlay, cells, markOffset, markLength);
-    } else {
-      drawStandardCropMarks(overlay, cells, markOffset, markLength);
-    }
+    drawBookletCropMarks(overlay, cells, markOffset, markLength);
   }
 
   if (config.registrationMarks) {
@@ -109,10 +97,8 @@ export function calculateMarks(
     }
   }
 
-  if (isBooklet) {
+  if (config.foldMarks) {
     drawBookletFoldLine(overlay, cells, sheetH, margins);
-  } else if (config.foldMarks && cells.length >= 2) {
-    drawFoldMarksBetweenCells(overlay, cells, sheetW, sheetH, margins);
   }
 
   if (config.bindingStyle !== 'none') {
@@ -131,59 +117,25 @@ export function calculateMarks(
     const grainDir = slugMeta?.grainDirection === 'long' ? 'FL' : slugMeta?.grainDirection === 'short' ? 'FC' : '';
     const pagesLabel = slugMeta?.pageCount ? `${slugMeta.pageCount} págs` : '';
 
-    const line1 = `${fileName ? fileName + ' — ' : ''}${today} — Pliego ${sheetIndex + 1}/${totalSheets}`;
-    const line2 = [
-      impositionType ? impositionType : '',
+    // Slug en la esquina inferior izquierda, en una sola línea compacta
+    const parts = [
+      fileName,
+      today,
+      `Pliego ${sheetIndex + 1}/${totalSheets}`,
+      'booklet',
       pagesLabel,
       grainDir ? `Fibra: ${grainDir}` : '',
-    ].filter(Boolean).join(' — ');
-    const line3 = config.pdfxOutput && slugMeta?.pdfxProfile ? `PDF/X-4 — ${slugMeta.pdfxProfile}` : '';
+      config.pdfxOutput && slugMeta?.pdfxProfile ? `PDF/X-4 ${slugMeta.pdfxProfile}` : '',
+    ].filter(Boolean);
 
-    const labelY = margins - 8;
-    overlay.signatureLabels.push({ x: sheetW / 2, y: labelY, text: line1 });
-    if (line2) overlay.signatureLabels.push({ x: sheetW / 2, y: labelY - 10, text: line2 });
-    if (line3) overlay.signatureLabels.push({ x: sheetW / 2, y: labelY - 20, text: line3 });
+    overlay.signatureLabels.push({
+      x: margins,
+      y: sheetH - 4,
+      text: parts.join(' · '),
+    });
   }
 
   return overlay;
-}
-
-function drawStandardCropMarks(
-  overlay: MarksOverlay,
-  cells: NUpCell[],
-  markOffset: number,
-  markLength: number,
-) {
-  for (const cell of cells) {
-    if (cell.pageIndex < 0) continue;
-
-    const tx = cell.x;
-    const ty = cell.y;
-    const tw = cell.width;
-    const th = cell.height;
-
-    const corners = [
-      { cx: tx, cy: ty, dx1: -1, dy1: -1 },
-      { cx: tx + tw, cy: ty, dx1: 1, dy1: -1 },
-      { cx: tx + tw, cy: ty + th, dx1: 1, dy1: 1 },
-      { cx: tx, cy: ty + th, dx1: -1, dy1: 1 },
-    ];
-
-    for (const { cx, cy, dx1, dy1 } of corners) {
-      overlay.cropLines.push({
-        x1: cx + dx1 * markOffset,
-        y1: cy + dy1 * (markOffset + markLength),
-        x2: cx + dx1 * markOffset,
-        y2: cy + dy1 * markOffset,
-      });
-      overlay.cropLines.push({
-        x1: cx + dx1 * (markOffset + markLength),
-        y1: cy + dy1 * markOffset,
-        x2: cx + dx1 * markOffset,
-        y2: cy + dy1 * markOffset,
-      });
-    }
-  }
 }
 
 function drawBookletCropMarks(
@@ -249,32 +201,6 @@ function drawBookletCropMarks(
   });
 }
 
-function drawCollatingMarks(
-  overlay: MarksOverlay,
-  cells: NUpCell[],
-  signatureIndex: number,
-  totalSignatures: number,
-  margins: number,
-  sheetH: number,
-) {
-  const validCells = cells.filter(c => c.pageIndex >= 0);
-  if (validCells.length < 2) return;
-
-  const spineX = (validCells[0].x + validCells[0].width + validCells[1].x) / 2;
-  const markW = 3;
-  const markH = 3;
-  const usableH = sheetH - 2 * margins;
-  const stepY = usableH / (totalSignatures + 1);
-  const markY = margins + stepY * (signatureIndex + 1);
-
-  overlay.collatingMarks.push({
-    x: spineX - 2,
-    y: markY,
-    w: markW,
-    h: markH,
-  });
-}
-
 function drawBookletFoldLine(
   overlay: MarksOverlay,
   cells: NUpCell[],
@@ -285,53 +211,24 @@ function drawBookletFoldLine(
   if (validCells.length < 2) return;
 
   const spineX = (validCells[0].x + validCells[0].width + validCells[1].x) / 2;
+  const topY = Math.min(...validCells.map(c => c.y));
+  const bottomY = Math.max(...validCells.map(c => c.y + c.height));
+
+  // Marca de pliegue extendida: desde el borde de la hoja hasta el arte
+  // (arriba) y desde el arte hasta el borde de la hoja (abajo).
+  overlay.foldLines.push({
+    x1: spineX,
+    y1: 0,
+    x2: spineX,
+    y2: topY - 2,
+    dashed: true,
+  });
 
   overlay.foldLines.push({
     x1: spineX,
-    y1: margins,
+    y1: bottomY + 2,
     x2: spineX,
-    y2: sheetH - margins,
+    y2: sheetH,
     dashed: true,
   });
-}
-
-function drawFoldMarksBetweenCells(
-  overlay: MarksOverlay,
-  cells: NUpCell[],
-  sheetW: number,
-  sheetH: number,
-  margins: number,
-) {
-  const actualCells = cells.filter(c => c.pageIndex >= 0);
-  for (let i = 0; i < actualCells.length; i++) {
-    for (let j = i + 1; j < actualCells.length; j++) {
-      const a = actualCells[i];
-      const b = actualCells[j];
-
-      const xGap = b.x - (a.x + a.width);
-      const yGap = b.y - (a.y + a.height);
-
-      if (Math.abs(xGap) < 5 && a.y === b.y) {
-        const foldX = a.x + a.width + xGap / 2;
-        overlay.foldLines.push({
-          x1: foldX,
-          y1: margins,
-          x2: foldX,
-          y2: sheetH - margins,
-          dashed: true,
-        });
-      }
-
-      if (Math.abs(yGap) < 5 && a.x === b.x) {
-        const foldY = a.y + a.height + yGap / 2;
-        overlay.foldLines.push({
-          x1: margins,
-          y1: foldY,
-          x2: sheetW - margins,
-          y2: foldY,
-          dashed: true,
-        });
-      }
-    }
-  }
 }

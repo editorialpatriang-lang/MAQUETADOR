@@ -1,4 +1,4 @@
-export type ImpositionType = 'nup' | 'booklet' | 'perfect-bound' | 'cards' | 'cutstack' | 'work-turn' | 'work-tumble';
+export type ImpositionType = 'booklet';
 
 export type Unit = 'mm' | 'cm' | 'in';
 
@@ -39,29 +39,11 @@ export function pointsToUnit(points: number, unit: Unit): number {
   return points / (entry?.pointsPerUnit ?? 1);
 }
 
-export interface NUpConfig {
-  pagesPerSheet: number;
-  orientation: Orientation;
-}
-
 export interface BookletConfig {
   signatureSize: number;
   autoCreep: boolean;
   manualCreep: number;
   paperGsm: number;
-}
-
-export interface PerfectBoundConfig {
-  signatureSize: number;
-}
-
-export interface CardsConfig {
-  cardWidth: number;
-  cardHeight: number;
-  cols: number;
-  rows: number;
-  gutter: number;
-  sourcePage: number;
 }
 
 export type BindingStyle = 'none' | 'wire-o' | 'spiral' | 'binder';

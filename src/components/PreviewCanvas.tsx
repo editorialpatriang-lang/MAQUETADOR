@@ -1,40 +1,17 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { useDocumentStore } from '@/store/documentStore';
 import { previewEngine } from '@/lib/pdf/previewEngine';
-import { calculateNUpLayout } from '@/lib/pdf/imposition/nup';
 import { calculateBookletLayout } from '@/lib/pdf/imposition/booklet';
-import { calculatePerfectBoundLayout } from '@/lib/pdf/imposition/perfect-bound';
-import { calculateCardsLayout } from '@/lib/pdf/imposition/cards';
-import { calculateCutStackLayout } from '@/lib/pdf/imposition/cutstack';
-import { calculateWorkTurnLayout } from '@/lib/pdf/imposition/work-turn';
 import { calculateMarks } from '@/lib/pdf/marks';
-import type { ImpositionLayout, ImpositionType } from '@/types/imposition';
+import type { ImpositionLayout } from '@/types/imposition';
 
 function getLayout(
-  type: ImpositionType,
   pageCount: number,
   pageW: number,
   pageH: number,
   store: ReturnType<typeof useDocumentStore.getState>,
 ): ImpositionLayout {
-  switch (type) {
-    case 'nup':
-      return calculateNUpLayout(pageCount, pageW, pageH, store.nup, store.sheet);
-    case 'booklet':
-      return calculateBookletLayout(pageCount, pageW, pageH, store.booklet, store.sheet, { creepVisualScale: 50 });
-    case 'cards':
-      return calculateCardsLayout(pageCount, store.cards, store.sheet, store.cards.sourcePage);
-    case 'cutstack':
-      return calculateCutStackLayout(pageCount, pageW, pageH, store.nup.pagesPerSheet, store.nup, store.sheet);
-    case 'perfect-bound':
-      return calculatePerfectBoundLayout(pageCount, pageW, pageH, store.perfectBound, store.sheet);
-    case 'work-turn':
-      return calculateWorkTurnLayout(pageCount, pageW, pageH, store.nup, store.sheet, 'work-turn');
-    case 'work-tumble':
-      return calculateWorkTurnLayout(pageCount, pageW, pageH, store.nup, store.sheet, 'work-tumble');
-    default:
-      return { sheets: [], totalSheets: 0, sheetWidth: pageW, sheetHeight: pageH };
-  }
+  return calculateBookletLayout(pageCount, pageW, pageH, store.booklet, store.sheet, { creepVisualScale: 50 });
 }
 
 export function PreviewCanvas() {
@@ -47,11 +24,7 @@ export function PreviewCanvas() {
   const originalPdfBytes = useDocumentStore((s) => s.originalPdfBytes);
   const originalPageW = useDocumentStore((s) => s.originalPageWidth);
   const originalPageH = useDocumentStore((s) => s.originalPageHeight);
-  const impositionType = useDocumentStore((s) => s.impositionType);
-  const nup = useDocumentStore((s) => s.nup);
   const booklet = useDocumentStore((s) => s.booklet);
-  const perfectBound = useDocumentStore((s) => s.perfectBound);
-  const cards = useDocumentStore((s) => s.cards);
   const sheet = useDocumentStore((s) => s.sheet);
   const marks = useDocumentStore((s) => s.marks);
   const previewScale = useDocumentStore((s) => s.previewScale);
@@ -68,7 +41,7 @@ export function PreviewCanvas() {
     if (!isInitialized.current) return;
 
     const store = useDocumentStore.getState();
-    const layout = getLayout(impositionType, pageCount, originalPageW, originalPageH, store);
+    const layout = getLayout(pageCount, originalPageW, originalPageH, store);
 
     if (layout.sheets.length === 0) return;
 
@@ -76,16 +49,6 @@ export function PreviewCanvas() {
     const sheetData = layout.sheets[idx];
     const sW = layout.sheetWidth;
     const sH = layout.sheetHeight;
-    const sigSize = impositionType === 'perfect-bound' ? store.perfectBound.signatureSize : store.booklet.signatureSize;
-    const effSigSize = sigSize > 0 && sigSize < pageCount ? sigSize : pageCount;
-    const sigSheets = Math.ceil(effSigSize / 4);
-    const sheetsPerSig = sigSheets * 2;
-    const totalSignatures = Math.ceil(pageCount / effSigSize);
-    const signatureIndex = impositionType === 'perfect-bound'
-      ? Math.floor(idx / sheetsPerSig)
-      : undefined;
-    const sigIdxParam = impositionType === 'perfect-bound' ? signatureIndex : undefined;
-    const totalSigsParam = impositionType === 'perfect-bound' ? totalSignatures : undefined;
 
     const slugMeta = {
       fileName: store.fileName,
@@ -94,7 +57,7 @@ export function PreviewCanvas() {
       pdfxProfile: store.marks.pdfxProfile,
     };
 
-    const marksOverlay = calculateMarks(sW, sH, marks.bleed, sheet.margins, marks, sheetData.cells, idx, layout.sheets.length, impositionType, sigIdxParam, totalSigsParam, slugMeta);
+    const marksOverlay = calculateMarks(sW, sH, marks.bleed, sheet.margins, marks, sheetData.cells, idx, layout.sheets.length, slugMeta);
 
     await previewEngine.renderSheet(
       canvas,
@@ -107,7 +70,7 @@ export function PreviewCanvas() {
 
     if (duplexMode && canvasBackRef.current && idx + 1 < layout.sheets.length) {
       const backSheet = layout.sheets[idx + 1];
-      const backMarks = calculateMarks(sW, sH, marks.bleed, sheet.margins, marks, backSheet.cells, idx + 1, layout.sheets.length, impositionType, sigIdxParam, totalSigsParam, slugMeta);
+      const backMarks = calculateMarks(sW, sH, marks.bleed, sheet.margins, marks, backSheet.cells, idx + 1, layout.sheets.length, slugMeta);
       await previewEngine.renderSheet(
         canvasBackRef.current,
         backSheet,
@@ -122,11 +85,7 @@ export function PreviewCanvas() {
     pageCount,
     originalPageW,
     originalPageH,
-    impositionType,
-    nup,
     booklet,
-    perfectBound,
-    cards,
     sheet,
     marks,
     previewScale,
@@ -160,7 +119,7 @@ export function PreviewCanvas() {
   }, [doRender]);
 
   const store = useDocumentStore.getState();
-  const layout = pageCount > 0 ? getLayout(impositionType, pageCount, originalPageW, originalPageH, store) : { sheets: [], totalSheets: 0, sheetWidth: originalPageW, sheetHeight: originalPageH };
+  const layout = pageCount > 0 ? getLayout(pageCount, originalPageW, originalPageH, store) : { sheets: [], totalSheets: 0, sheetWidth: originalPageW, sheetHeight: originalPageH };
   const totalSheets = layout.totalSheets;
 
   const fitToWidth = useCallback(() => {
@@ -175,7 +134,7 @@ export function PreviewCanvas() {
   const zoomOut = () => setPreviewScale(Math.max(0.1, previewScale - 0.1));
   const zoom100 = () => setPreviewScale(1);
 
-  const canDuplex = ['booklet', 'perfect-bound', 'work-turn', 'work-tumble'].includes(impositionType);
+  const canDuplex = true;
 
   if (!originalPdfBytes || pageCount === 0) {
     return (

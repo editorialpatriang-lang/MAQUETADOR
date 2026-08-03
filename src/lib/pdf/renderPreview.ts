@@ -29,12 +29,11 @@ export async function renderPageToCanvas(
   try {
     const page = await currentDoc.getPage(pageIndex + 1);
 
-    const viewport = page.getViewport({ scale: 1 });
-    const scaleX = targetWidth / viewport.width;
-    const scaleY = targetHeight / viewport.height;
+    // Viewport base a escala 1 — el escalado y centrado se aplican al contexto
+    const baseViewport = page.getViewport({ scale: 1 });
+    const scaleX = targetWidth / baseViewport.width;
+    const scaleY = targetHeight / baseViewport.height;
     const scale = Math.min(scaleX, scaleY);
-
-    const scaledViewport = page.getViewport({ scale });
 
     const canvas = document.createElement('canvas');
     canvas.width = targetWidth;
@@ -45,13 +44,20 @@ export async function renderPageToCanvas(
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, targetWidth, targetHeight);
 
-    const offsetX = (targetWidth - scaledViewport.width) / 2;
-    const offsetY = (targetHeight - scaledViewport.height) / 2;
+    const drawW = baseViewport.width * scale;
+    const drawH = baseViewport.height * scale;
+    const offsetX = (targetWidth - drawW) / 2;
+    const offsetY = (targetHeight - drawH) / 2;
+
+    // Patrón recomendado por pdf.js: transladar y escalar el contexto
+    // antes de renderizar con el viewport base. Evita renders en blanco
+    // que ocurren al combinar `transform` con un viewport ya escalado.
+    ctx.translate(offsetX, offsetY);
+    ctx.scale(scale, scale);
 
     await page.render({
       canvasContext: ctx,
-      viewport: scaledViewport,
-      transform: [1, 0, 0, 1, offsetX, offsetY],
+      viewport: baseViewport,
     }).promise;
 
     return canvas;

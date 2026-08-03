@@ -1,8 +1,25 @@
 import type { ImpositionLayout, BookletConfig, SheetConfig } from '@/types/imposition';
 import type { NUpCell, ImpositionSheet } from '@/types/imposition';
-import { getGripperMargins } from './nup';
 
 const MM_TO_PT = 2.834645669;
+
+interface Margins {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+}
+
+function getGripperMargins(sheet: SheetConfig): Margins {
+  const base = sheet.margins;
+  const { enabled, size, side } = sheet.gripper;
+  return {
+    left: base + (enabled && side === 'left' ? size : 0),
+    right: base + (enabled && side === 'right' ? size : 0),
+    top: base + (enabled && side === 'top' ? size : 0),
+    bottom: base + (enabled && side === 'bottom' ? size : 0),
+  };
+}
 
 const PAPER_CALIPER_MM: Record<number, number> = {
   70: 0.08, 80: 0.09, 90: 0.10, 100: 0.11, 115: 0.12, 120: 0.13,
@@ -26,15 +43,39 @@ function getCaliperPt(gsm: number): number {
   return gsm * 0.001 * MM_TO_PT;
 }
 
+/**
+ * Caliper (grosor) de una hoja de papel en puntos.
+ * Es el creep incremental que se acumula por cada hoja del cuadernillo.
+ */
 function calcularCreepPerSheet(paperGsm: number, visualScale: number = 1): number {
   if (paperGsm <= 0) return 0;
   return getCaliperPt(paperGsm) * visualScale;
 }
 
-export function calcularCreepAutomatico(pageCount: number, paperGsm: number = 130): number {
-  if (pageCount <= 8) return 0;
-  const numSheets = Math.ceil(pageCount / 4);
-  return (numSheets - 1) * getCaliperPt(paperGsm);
+/**
+ * Calcula el creep máximo del cuadernillo (desplazamiento de la hoja más
+ * interna respecto a la externa).
+ *
+ * @param pageCount  Total de páginas del documento
+ * @param paperGsm   Gramaje del papel
+ * @param signatureSize  Páginas por cuadernillo (0 = un solo cuadernillo)
+ * @param visualScale    Escala visual para previsualización (1 = real)
+ *
+ * El creep máximo = (número de hojas del cuadernillo - 1) × caliper de una hoja.
+ * La hoja interior (s=última) no se desplaza; la hoja exterior (s=0) tiene
+ * el máximo desplazamiento hacia afuera para compensar el recorte en guillotina.
+ */
+export function calcularCreepAutomatico(
+  pageCount: number,
+  paperGsm: number = 130,
+  signatureSize: number = 0,
+  visualScale: number = 1,
+): number {
+  const sigSize = signatureSize > 0 && signatureSize < pageCount ? signatureSize : pageCount;
+  const sigPadded = Math.ceil(sigSize / 4) * 4;
+  const numSheets = sigPadded / 4;
+  if (numSheets <= 1) return 0;
+  return (numSheets - 1) * getCaliperPt(paperGsm) * visualScale;
 }
 
 export function calculateBookletLayout(
@@ -46,18 +87,24 @@ export function calculateBookletLayout(
   options?: { autoCreep?: boolean; creepVisualScale?: number },
 ): ImpositionLayout {
   const { signatureSize, autoCreep, manualCreep } = booklet;
-  const { width: sheetW, height: sheetH, centerContent } = sheet;
+  const { width: sheetW, height: sheetH, centerContent, gutter } = sheet;
   const gm = getGripperMargins(sheet);
 
-  const cellW = pageWidth;
-  const cellH = pageHeight;
+  const usableW = sheetW - gm.left - gm.right;
+  const usableH = sheetH - gm.top - gm.bottom;
+  const halfW = usableW / 2 - gutter / 2;
+
+  // Escalar la página para que quepa en la mitad del pliego manteniendo su relación de aspecto
+  const scale = Math.min(halfW / pageWidth, usableH / pageHeight);
+  const cellW = pageWidth * scale;
+  const cellH = pageHeight * scale;
 
   const spineCenter = centerContent
-    ? gm.left + (sheetW - gm.left - gm.right) / 2
+    ? gm.left + usableW / 2
     : gm.left + cellW;
 
   const offsetY = centerContent
-    ? gm.top + (sheetH - gm.top - gm.bottom - cellH) / 2
+    ? gm.top + (usableH - cellH) / 2
     : gm.top;
 
   const sigSize = signatureSize > 0 && signatureSize < pageCount
@@ -81,12 +128,24 @@ export function calculateBookletLayout(
       : manualCreep * visualScale;
 
     for (let s = 0; s < sigSheets; s++) {
-      const pageRight = order[s * 4 + 0];
-      const pageLeftFront = order[s * 4 + 1];
-      const pageRightFront = order[s * 4 + 2];
-      const pageLeftBack = order[s * 4 + 3];
+      // Orden saddle-stitch por hoja física (bloque de 4 páginas):
+      //   order[4s+0] → frente IZQUIERDA (última página del cuadernillo, p. ej. 4)
+      //   order[4s+1] → frente DERECHA  (primera página, p. ej. 1)
+      //   order[4s+2] → dorso  IZQUIERDA (segunda página, p. ej. 2)
+      //   order[4s+3] → dorso  DERECHA  (penúltima página, p. ej. 3)
+      // Todas las páginas a 0°: al doblar el pliego por el lomo, el folleto
+      // se lee en orden natural sin necesidad de rotar ninguna página.
+      const frontLeftPage  = order[s * 4 + 0];
+      const frontRightPage = order[s * 4 + 1];
+      const backLeftPage   = order[s * 4 + 2];
+      const backRightPage  = order[s * 4 + 3];
 
-      const co = creep * s;
+      // El creep desplaza las hojas EXTERIORES hacia afuera (alejándolas del lomo).
+      // La hoja interior (s=sigSheets-1) no se mueve; la exterior (s=0) tiene
+      // el máximo desplazamiento. Esto compensa que, al doblar y cortar en
+      // guillotina, las páginas interiores sobresalen más y se recortan de más.
+      // Desplazando las exteriores hacia afuera, todas quedan alineadas al cortar.
+      const co = creep * (sigSheets - 1 - s);
 
       const frontLeftX = spineCenter - cellW - co;
       const frontRightX = spineCenter + co;
@@ -95,7 +154,7 @@ export function calculateBookletLayout(
 
       const frontCells: NUpCell[] = [
         {
-          pageIndex: pageLeftFront,
+          pageIndex: frontLeftPage,
           x: frontLeftX,
           y: offsetY,
           width: cellW,
@@ -103,26 +162,26 @@ export function calculateBookletLayout(
           rotation: 0,
         },
         {
-          pageIndex: pageRightFront,
+          pageIndex: frontRightPage,
           x: frontRightX,
           y: offsetY,
           width: cellW,
           height: cellH,
-          rotation: 180,
+          rotation: 0,
         },
       ];
 
       const backCells: NUpCell[] = [
         {
-          pageIndex: pageLeftBack,
+          pageIndex: backLeftPage,
           x: backLeftX,
           y: offsetY,
           width: cellW,
           height: cellH,
-          rotation: 180,
+          rotation: 0,
         },
         {
-          pageIndex: pageRight,
+          pageIndex: backRightPage,
           x: backRightX,
           y: offsetY,
           width: cellW,
@@ -182,8 +241,8 @@ export function getBookletPagePreview(pageCount: number, signatureSize: number =
       const label = (i: number) => i >= 0 ? `pág. ${i + 1}` : '(blanco)';
       preview.push(
         `Cuad. ${sigNum}, Pliego ${s + 1}/${sigSheets}`,
-        `  ├ frente: ${label(p1)} (0°) · ${label(p2)} (180°)`,
-        `  └ dorso:  ${label(p3)} (180°) · ${label(p0)} (0°)`,
+        `  ├ frente: ${label(p0)} (0°) · ${label(p1)} (0°)`,
+        `  └ dorso:  ${label(p2)} (0°) · ${label(p3)} (0°)`,
       );
     }
   }

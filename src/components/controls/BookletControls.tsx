@@ -26,7 +26,7 @@ export function BookletControls() {
   const booklet = useDocumentStore((s) => s.booklet);
   const setBookletConfig = useDocumentStore((s) => s.setBookletConfig);
 
-  const creepAuto = calcularCreepAutomatico(pageCount, booklet.paperGsm);
+  const creepAuto = calcularCreepAutomatico(pageCount, booklet.paperGsm, booklet.signatureSize);
   const totalPliegos = Math.ceil(Math.ceil(pageCount / 4) * 4 / 4);
   const sigSize = booklet.signatureSize > 0 && booklet.signatureSize < pageCount
     ? booklet.signatureSize
@@ -80,7 +80,7 @@ export function BookletControls() {
               </span>
             </div>
             <p className="text-xs text-blue-600/70 dark:text-blue-400/60 mt-1">
-              Basado en {pageCount} págs y {booklet.paperGsm} gsm. Las interiores se desplazan para compensar el papel.
+              Basado en {sigSize} págs/cuadernillo y {booklet.paperGsm} gsm. Las hojas exteriores se desplazan hacia afuera para compensar el grosor acumulado del papel al cortar en guillotina.
             </p>
           </div>
         ) : (
@@ -102,10 +102,9 @@ export function BookletControls() {
         </h4>
         <div className="text-[10px] text-gray-400 leading-relaxed space-y-0.5">
           <p>· Crop marks: bordes exteriores de cada página</p>
-          <p>· Línea central: línea de doblez (punteada)</p>
-          <p>· La línea de doblez se ajusta con el creep</p>
-          <p>· Frente izquierda: 0° · Frente derecha: 180°</p>
-          <p>· Dorso izquierda: 180° · Dorso derecha: 0°</p>
+          <p>· Marca de doblez: punteada en el lomo, fuera del arte</p>
+          <p>· La posición del lomo se ajusta con el creep</p>
+          <p>· Todas las páginas a 0° (sin rotar)</p>
         </div>
       </div>
     </div>

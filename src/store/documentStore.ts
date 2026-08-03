@@ -6,10 +6,7 @@ import type {
   ImpositionType,
   Unit,
   Orientation,
-  NUpConfig,
   BookletConfig,
-  PerfectBoundConfig,
-  CardsConfig,
   ProductionMarks,
   SheetConfig,
   SheetPreset,
@@ -17,10 +14,7 @@ import type {
   BleedMode,
 } from '@/types/imposition';
 
-const DEFAULT_NUP: NUpConfig = { pagesPerSheet: 4, orientation: 'portrait' };
 const DEFAULT_BOOKLET: BookletConfig = { signatureSize: 0, autoCreep: true, manualCreep: 0, paperGsm: 130 };
-const DEFAULT_PERFECT_BOUND: PerfectBoundConfig = { signatureSize: 8 };
-const DEFAULT_CARDS: CardsConfig = { cardWidth: 252, cardHeight: 144, cols: 2, rows: 5, gutter: 10, sourcePage: 0 };
 const DEFAULT_MARKS: ProductionMarks = { cropMarks: true, cropMarkLength: 20, cropMarkOffset: 6, cropMarkThickness: 0.25, registrationMarks: false, bleed: 8.5, colorBar: false, colorBarType: 'CMYK', pdfxOutput: false, pdfxProfile: 'FOGRA39', foldMarks: false, bindingStyle: 'none', collatingMarks: false, signatureNumbering: false, overprintPreview: false };
 const DEFAULT_SHEET: SheetConfig = { preset: 'A3', width: 841.89, height: 1190.55, orientation: 'portrait', grainDirection: 'long', margins: 36, gutter: 14, centerContent: true, gripper: { enabled: false, size: 34, side: 'bottom' }, bleedMode: 'none', extendColor: '#ffffff' };
 
@@ -34,10 +28,7 @@ interface DocumentState {
   originalPageHeight: number;
 
   impositionType: ImpositionType;
-  nup: NUpConfig;
   booklet: BookletConfig;
-  perfectBound: PerfectBoundConfig;
-  cards: CardsConfig;
   sheet: SheetConfig;
   marks: ProductionMarks;
   unit: Unit;
@@ -51,10 +42,7 @@ interface DocumentState {
   loadFile: (file: File) => Promise<void>;
   reset: () => void;
   setImpositionType: (type: ImpositionType) => void;
-  setNUpConfig: (config: Partial<NUpConfig>) => void;
   setBookletConfig: (config: Partial<BookletConfig>) => void;
-  setPerfectBoundConfig: (config: Partial<PerfectBoundConfig>) => void;
-  setCardsConfig: (config: Partial<CardsConfig>) => void;
   setSheetConfig: (config: Partial<SheetConfig>) => void;
   setSheetPreset: (preset: SheetPreset) => void;
   setSheetOrientation: (orientation: Orientation) => void;
@@ -77,11 +65,8 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   originalPageWidth: 595.28,
   originalPageHeight: 841.89,
 
-  impositionType: 'nup',
-  nup: DEFAULT_NUP,
+  impositionType: 'booklet',
   booklet: DEFAULT_BOOKLET,
-  perfectBound: DEFAULT_PERFECT_BOUND,
-  cards: DEFAULT_CARDS,
   sheet: DEFAULT_SHEET,
   marks: DEFAULT_MARKS,
   unit: 'mm',
@@ -143,11 +128,8 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       fileSize: 0,
       originalPageWidth: 595.28,
       originalPageHeight: 841.89,
-      impositionType: 'nup',
-      nup: DEFAULT_NUP,
+      impositionType: 'booklet',
       booklet: DEFAULT_BOOKLET,
-      perfectBound: DEFAULT_PERFECT_BOUND,
-      cards: DEFAULT_CARDS,
       sheet: DEFAULT_SHEET,
       marks: DEFAULT_MARKS,
       unit: 'mm',
@@ -159,17 +141,8 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
 
   setImpositionType: (type) => set({ impositionType: type, currentSheetIndex: 0 }),
 
-  setNUpConfig: (config) =>
-    set((s) => ({ nup: { ...s.nup, ...config }, currentSheetIndex: 0 })),
-
   setBookletConfig: (config) =>
     set((s) => ({ booklet: { ...s.booklet, ...config }, currentSheetIndex: 0 })),
-
-  setPerfectBoundConfig: (config) =>
-    set((s) => ({ perfectBound: { ...s.perfectBound, ...config }, currentSheetIndex: 0 })),
-
-  setCardsConfig: (config) =>
-    set((s) => ({ cards: { ...s.cards, ...config }, currentSheetIndex: 0 })),
 
   setSheetConfig: (config) =>
     set((s) => ({ sheet: { ...s.sheet, ...config }, currentSheetIndex: 0 })),

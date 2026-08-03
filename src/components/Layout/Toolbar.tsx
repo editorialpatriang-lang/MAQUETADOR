@@ -1,34 +1,12 @@
 import { useDocumentStore } from '@/store/documentStore';
 import { Button } from '@/components/ui/Button';
 import { exportPdf } from '@/lib/pdf/exportPdf';
-import { calculateNUpLayout } from '@/lib/pdf/imposition/nup';
 import { calculateBookletLayout } from '@/lib/pdf/imposition/booklet';
-import { calculatePerfectBoundLayout } from '@/lib/pdf/imposition/perfect-bound';
-import { calculateCardsLayout } from '@/lib/pdf/imposition/cards';
-import { calculateCutStackLayout } from '@/lib/pdf/imposition/cutstack';
-import { calculateWorkTurnLayout } from '@/lib/pdf/imposition/work-turn';
 import type { ImpositionLayout } from '@/types/imposition';
 
 function getLayout(store: ReturnType<typeof useDocumentStore.getState>): ImpositionLayout {
-  const { impositionType, pageCount, originalPageWidth, originalPageHeight, nup, booklet, perfectBound, cards, sheet } = store;
-  switch (impositionType) {
-    case 'nup':
-      return calculateNUpLayout(pageCount, originalPageWidth, originalPageHeight, nup, sheet);
-    case 'booklet':
-      return calculateBookletLayout(pageCount, originalPageWidth, originalPageHeight, booklet, sheet);
-    case 'cards':
-      return calculateCardsLayout(pageCount, cards, sheet, cards.sourcePage);
-    case 'cutstack':
-      return calculateCutStackLayout(pageCount, originalPageWidth, originalPageHeight, nup.pagesPerSheet, nup, sheet);
-    case 'perfect-bound':
-      return calculatePerfectBoundLayout(pageCount, originalPageWidth, originalPageHeight, perfectBound, sheet);
-    case 'work-turn':
-      return calculateWorkTurnLayout(pageCount, originalPageWidth, originalPageHeight, nup, sheet, 'work-turn');
-    case 'work-tumble':
-      return calculateWorkTurnLayout(pageCount, originalPageWidth, originalPageHeight, nup, sheet, 'work-tumble');
-    default:
-      return { sheets: [], totalSheets: 0, sheetWidth: originalPageWidth, sheetHeight: originalPageHeight };
-  }
+  const { pageCount, originalPageWidth, originalPageHeight, booklet, sheet } = store;
+  return calculateBookletLayout(pageCount, originalPageWidth, originalPageHeight, booklet, sheet);
 }
 
 export function Toolbar() {
@@ -37,7 +15,6 @@ export function Toolbar() {
   const pageCount = useDocumentStore((s) => s.pageCount);
   const originalPdfBytes = useDocumentStore((s) => s.originalPdfBytes);
   const fileName = useDocumentStore((s) => s.fileName);
-  const impositionType = useDocumentStore((s) => s.impositionType);
   const isProcessing = useDocumentStore((s) => s.isProcessing);
   const setIsProcessing = useDocumentStore((s) => s.setIsProcessing);
   const setError = useDocumentStore((s) => s.setError);
@@ -60,8 +37,6 @@ export function Toolbar() {
         marks,
         sheet.margins,
         fileName,
-        impositionType,
-        impositionType === 'perfect-bound' ? store.perfectBound.signatureSize : store.booklet.signatureSize,
         pageCount,
         sheet.grainDirection,
       );

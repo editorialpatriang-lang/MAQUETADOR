@@ -2,7 +2,7 @@
 
 **Herramienta profesional de imposición de PDFs para imprenta offset y digital. Basada en el modelo conceptual CIP4 JDF 1.8.**
 
-MAQUETADOR toma un PDF fuente y reordena sus páginas en pliegos de impresión listos para producción, aplicando marcas de corte, registro, barras de color CMYK, marcas de colación, líneas de pliegue y más. Todo con previsualización en tiempo real WYSIWYG y exportación PDF/X-4.
+MAQUETADOR toma un PDF fuente y reordena sus páginas en pliegos de impresión listos para producción, aplicando marcas de corte, registro, barras de color CMYK, marcas de pliegue y más. Todo con previsualización en tiempo real WYSIWYG y exportación PDF/X-4.
 
 ![Stack](https://img.shields.io/badge/stack-React%2018%20%2B%20Vite%206%20%2B%20TypeScript%205-blue)
 ![PDF](https://img.shields.io/badge/PDF-pdf--lib%20%2B%20pdfjs--dist-red)
@@ -14,7 +14,7 @@ MAQUETADOR toma un PDF fuente y reordena sus páginas en pliegos de impresión l
 
 ## Tabla de contenidos
 
-- [Tipos de imposición](#tipos-de-imposición)
+- [Imposición](#imposición)
 - [Marcas de producción](#marcas-de-producción)
 - [Control de calidad en encuadernación](#control-de-calidad-en-encuadernación)
 - [Flujo de trabajo profesional](#flujo-de-trabajo-profesional)
@@ -26,58 +26,19 @@ MAQUETADOR toma un PDF fuente y reordena sus páginas en pliegos de impresión l
 
 ---
 
-## Tipos de imposición
+## Imposición
 
-### 1. N-up
-Coloca múltiples páginas por hoja en grilla. Ideal para cuadernillos escolares, manuales o cualquier documento que necesite varias páginas por cara.
+### Folleto (Booklet / Saddle-stitch)
 
-- **Configuraciones:** 2, 4, 6, 8, 9, 16, 32 páginas por hoja
-- **Orientación:** vertical / horizontal
-- **Grilla:** calculada automáticamente (ej. 16up = 4×4, 32up = 4×8)
-
-### 2. Folleto (Booklet / Saddle-stitch)
 Imposición para encuadernación a caballete (grapa al lomo). Las páginas se ordenan automáticamente para que al doblar el pliego queden en orden de lectura.
 
 - **Orden de páginas:** saddle-stitch automático (última+primera, penúltima+segunda, etc.)
 - **Cuadernillos:** tamaño de cuadernillo configurable para documentos largos
-- **Creep (desplazamiento por calibre):** automático basado en gramaje real del papel, con tabla de calibres de 70 a 350 gsm
-- **Rotación automática:** las páginas de la derecha se rotan 180° para que al doblar queden al derecho
+- **Creep (desplazamiento por calibre):** automático basado en gramaje real del papel, con tabla de calibres de 70 a 350 gsm e interpolación para valores intermedios
+- **Creep manual:** opción de desplazamiento manual en puntos
+- **Todas las páginas a 0°:** sin rotación — al doblar el pliego por el lomo, el folleto se lee en orden natural
 - **Línea de doblez:** punteada en el centro del pliego
 - **Marcas de corte:** solo en los bordes exteriores
-
-### 3. Encuadernación pegada (Perfect Bound)
-Similar al booklet pero sin creep de saddle-stitch. Para encuadernación con lomo pegado (pur binding).
-
-- Cuadernillos de 4, 8, 12, 16... páginas
-- Orden de saddle-stitch por cuadernillo
-- Sin línea de doblez central (las hojas se pliegan individualmente)
-- **Marcas de colación:** cuadraditos negros en el lomo que forman una escalera diagonal al apilar los cuadernillos. Permite verificar visualmente que ningún cuadernillo falte o esté fuera de orden.
-
-### 4. Tarjetas (Step & Repeat)
-Repite una misma página en grilla para imprimir tarjetas de visita, postales, entradas, etc.
-
-- **Dimensiones personalizables:** ancho × alto de cada tarjeta
-- **Columnas × filas** configurables
-- **Separación (gutter)** entre tarjetas
-- **Página fuente:** elige qué página del PDF repetir
-
-### 5. Cut & Stack
-Múltiples copias de cada página por hoja. Útil para tiradas cortas donde se imprime la misma página varias veces y luego se corta la pila.
-
-- Copias por página según grilla N-up
-- Cada página original genera su propia hoja con N copias
-
-### 6. Work & Turn
-Una sola plancha imprime ambas caras girando la hoja sobre su eje vertical. La misma plancha sirve para frente y dorso.
-
-- Las páginas del dorso se colocan en orden inverso horizontal
-- Rotación de 180° en el dorso
-
-### 7. Work & Tumble
-Similar a Work & Turn pero girando sobre el eje horizontal (la hoja se da vuelta "cabeza abajo").
-
-- Las páginas del dorso se colocan en orden inverso vertical
-- Rotación de 180° en el dorso
 
 ---
 
@@ -104,7 +65,7 @@ Patches de control de calidad para el impresor.
 - En el PDF exportado se usan tintas CMYK nativas (`cmyk()` de pdf-lib), no RGB convertido
 
 ### Marcas de pliegue (fold marks)
-Líneas punteadas entre celdas adyacentes indicando dónde doblar el pliego. Se activan con un toggle independiente.
+Líneas punteadas en el lomo (centro del pliego) indicando dónde doblar el folleto. Se activan con un toggle independiente.
 
 ### Perforación / encuadernado
 Marcas circulares para estilos de encuadernación predefinidos:
@@ -126,13 +87,6 @@ Etiqueta multilínea en la parte superior de cada plancha con metadata completa 
 ---
 
 ## Control de calidad en encuadernación
-
-### Marcas de colación (collating marks)
-Para encuadernación pegada, MAQUETADOR genera cuadraditos negros de 3×3 pt en el lomo de cada cuadernillo. La posición vertical del cuadrado cambia con cada cuadernillo, formando una **escalera diagonal** cuando los cuadernillos se apilan correctamente.
-
-Si la línea diagonal se rompe, el encuadernador detecta inmediatamente que un cuadernillo falta o está fuera de orden. Este es un estándar de control de calidad en imprentas profesionales (definido en CIP4 JDF como `CollatingMark`).
-
-Se activa desde **Marcas de producción → Marcas de colación** (visible solo en modo Encuadernación pegada).
 
 ### Dirección de fibra del papel (grain direction)
 Configurable desde **Hoja → Dirección de fibra**:
@@ -156,7 +110,7 @@ La dirección de fibra se refleja en el slug de trabajo de cada plancha para ref
 | **Unidad** | Milímetros, centímetros, pulgadas |
 | **Márgenes** | Margen general (0–200 pt) |
 | **Margen de pinza** | Gripper margin configurable por lado (arriba, abajo, izquierda, derecha). Tamaño personalizable (0–100 pt). Se descuenta del área útil. |
-| **Separación (gutter)** | Espacio entre celdas en modos N-up, Cards y Cut & Stack |
+| **Separación (gutter)** | Espacio entre celdas en el lomo del pliego |
 | **Centrar contenido** | Centra la grilla de imposición en la hoja |
 
 ### Manejo de PDF sin sangrado
@@ -221,12 +175,11 @@ npm run preview
 ### Uso rápido
 
 1. Arrastrá un PDF a la zona de carga o presioná **Ctrl+O**
-2. Seleccioná el tipo de imposición en el panel lateral
+2. Configurá el cuadernillo (páginas por cuadernillo, gramaje, creep)
 3. Configurá tamaño de hoja, márgenes y marcas de producción
 4. Navegá entre hojas con los botones ← →
 5. Ajustá el zoom con los botones **−** / **+** / **Ajustar**
-6. En modos booklet/perfect-bound/work-turn: activá **F+D** para ver frente y dorso lado a lado
-7. Clic en **Exportar PDF** para descargar el archivo imposicionado
+6. Clic en **Exportar PDF** para descargar el archivo imposicionado
 
 ---
 
@@ -263,12 +216,8 @@ src/
 │   │   ├── Sidebar.tsx          # Panel lateral de configuración
 │   │   └── Toolbar.tsx          # Barra superior (título, dark mode, exportar)
 │   ├── controls/
-│   │   ├── BookletControls.tsx  # Configuración de folleto
-│   │   ├── CardsControls.tsx    # Configuración de tarjetas
-│   │   ├── ImpositionTypeSelect.tsx  # Selector de tipo de imposición
+│   │   ├── BookletControls.tsx  # Configuración de folleto (cuadernillo, creep, gramaje)
 │   │   ├── MarksControls.tsx    # Marcas de producción
-│   │   ├── NUpControls.tsx      # Configuración N-up
-│   │   ├── PerfectBoundControls.tsx  # Configuración encuadernación pegada
 │   │   └── SheetSettings.tsx    # Configuración de hoja y pinza
 │   ├── ui/
 │   │   ├── Button.tsx           # Botón reutilizable
@@ -281,12 +230,7 @@ src/
 │   └── PreviewCanvas.tsx        # Canvas de previsualización con zoom y navegación
 ├── lib/pdf/
 │   ├── imposition/
-│   │   ├── booklet.ts           # Lógica de imposición saddle-stitch
-│   │   ├── cards.ts             # Step & repeat para tarjetas
-│   │   ├── cutstack.ts          # Cut & stack
-│   │   ├── nup.ts               # N-up + utilidades de márgenes de pinza
-│   │   ├── perfect-bound.ts     # Encuadernación pegada
-│   │   └── work-turn.ts         # Work & Turn + Work & Tumble
+│   │   └── booklet.ts           # Lógica de imposición saddle-stitch + creep
 │   ├── exportPdf.ts             # Exportación del PDF final con pdf-lib
 │   ├── marks.ts                 # Cálculo de todas las marcas de producción
 │   ├── previewEngine.ts         # Motor de renderizado de preview (canvas)
@@ -306,12 +250,13 @@ src/
 
 ### Implementado ✅
 
-- [x] 7 tipos de imposición (N-up, Booklet, Perfect Bound, Cards, Cut & Stack, Work & Turn, Work & Tumble)
+- [x] Imposición Booklet (saddle-stitch) con orden automático de páginas
+- [x] Cuadernillos configurables para documentos largos
+- [x] Creep automático por calibre real (tabla de 14 gramajes con interpolación)
+- [x] Creep manual en puntos
 - [x] Marcas de corte, registro, pliegue, sangrado
 - [x] Barra de color CMYK real (separaciones nativas en pdf-lib)
 - [x] Margen de pinza (gripper margin) configurable por lado
-- [x] Cálculo de creep por calibre real (tabla de 14 gramajes con interpolación)
-- [x] Marcas de colación (collating marks) para perfect-bound
 - [x] Dirección de fibra del papel (grain direction)
 - [x] Slug de trabajo multilínea (archivo, fecha, imposición, fibra, perfil ICC)
 - [x] WYSIWYG real entre preview canvas y PDF exportado
@@ -319,7 +264,6 @@ src/
 - [x] Perfiles ICC seleccionables (FOGRA39, GRACoL, SWOPv2, ISOcoatedv2)
 - [x] Manejo de PDF sin sangrado (escalar, recortar, extender con color)
 - [x] Perforación / encuadernado predefinido (wire-o, espiral, carpeta)
-- [x] Preview frente + dorso simultáneo
 - [x] Overprint preview
 - [x] UI 100% en español
 - [x] Dark mode con persistencia
@@ -337,6 +281,7 @@ src/
 - [ ] Worker de pdf.js embebido (modo offline)
 - [ ] Optimización automática de hoja de imposición
 - [ ] Exportación JDF para integración con RIP/MIS
+- [ ] Reintroducir otros tipos de imposición (N-up, Perfect Bound, Cards, Cut & Stack, Work & Turn, Work & Tumble)
 
 ---
 

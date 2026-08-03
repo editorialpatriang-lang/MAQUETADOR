@@ -1,12 +1,7 @@
 import { FileDropzone } from '@/components/FileDropzone';
-import { ImpositionTypeSelect } from '@/components/controls/ImpositionTypeSelect';
-import { NUpControls } from '@/components/controls/NUpControls';
 import { BookletControls } from '@/components/controls/BookletControls';
-import { PerfectBoundControls } from '@/components/controls/PerfectBoundControls';
-import { CardsControls } from '@/components/controls/CardsControls';
 import { SheetSettings } from '@/components/controls/SheetSettings';
 import { MarksControls } from '@/components/controls/MarksControls';
-import { useDocumentStore } from '@/store/documentStore';
 
 interface SidebarProps {
   open: boolean;
@@ -23,23 +18,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 function ControlsForType() {
-  const type = useDocumentStore((s) => s.impositionType);
-
-  switch (type) {
-    case 'nup':
-    case 'cutstack':
-    case 'work-turn':
-    case 'work-tumble':
-      return <NUpControls />;
-    case 'booklet':
-      return <BookletControls />;
-    case 'perfect-bound':
-      return <PerfectBoundControls />;
-    case 'cards':
-      return <CardsControls />;
-    default:
-      return null;
-  }
+  return <BookletControls />;
 }
 
 export function Sidebar({ open, onToggle }: SidebarProps) {
@@ -66,7 +45,6 @@ export function Sidebar({ open, onToggle }: SidebarProps) {
         </Section>
 
         <Section title="Imposición">
-          <ImpositionTypeSelect />
           <div className="mt-3">
             <ControlsForType />
           </div>
