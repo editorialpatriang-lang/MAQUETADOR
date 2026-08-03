@@ -168,42 +168,23 @@ function drawBookletCropMarks(
     ];
 
     for (const { cx, cy, dx, dy } of outerCorners) {
-      // Línea vertical (corte lateral)
+      // Línea vertical: alineada con el borde vertical del diseño (x = cx)
+      // markOffset = gap entre la esquina del diseño y donde empieza la marca
+      overlay.cropLines.push({
+        x1: cx,
+        y1: cy + dy * markOffset,
+        x2: cx,
+        y2: cy + dy * (markOffset + markLength),
+      });
+      // Línea horizontal: alineada con el borde horizontal del diseño (y = cy)
+      // markOffset = gap entre la esquina del diseño y donde empieza la marca
       overlay.cropLines.push({
         x1: cx + dx * markOffset,
-        y1: cy + dy * (markOffset + markLength),
-        x2: cx + dx * markOffset,
-        y2: cy + dy * markOffset,
-      });
-      // Línea horizontal (corte superior/inferior)
-      overlay.cropLines.push({
-        x1: cx + dx * (markOffset + markLength),
-        y1: cy + dy * markOffset,
-        x2: cx + dx * markOffset,
-        y2: cy + dy * markOffset,
+        y1: cy,
+        x2: cx + dx * (markOffset + markLength),
+        y2: cy,
       });
     }
-
-    // Marcas horizontales en los bordes exteriores superior e inferior
-    // Solo en el borde exterior de cada página (no cruzar el lomo)
-    const topY = ty;
-    const bottomY = ty + th;
-
-    // Borde superior: solo en la esquina exterior
-    overlay.cropLines.push({
-      x1: tx + (isLeftPage ? 0 : tw) + outerDx * markOffset,
-      y1: topY - markOffset,
-      x2: tx + (isLeftPage ? 0 : tw) + outerDx * (markOffset + markLength),
-      y2: topY - markOffset,
-    });
-
-    // Borde inferior: solo en la esquina exterior
-    overlay.cropLines.push({
-      x1: tx + (isLeftPage ? 0 : tw) + outerDx * markOffset,
-      y1: bottomY + markOffset,
-      x2: tx + (isLeftPage ? 0 : tw) + outerDx * (markOffset + markLength),
-      y2: bottomY + markOffset,
-    });
   }
 }
 
