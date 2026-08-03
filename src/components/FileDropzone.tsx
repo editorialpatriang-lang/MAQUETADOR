@@ -121,7 +121,7 @@ export function FileDropzone() {
           </svg>
           <div>
             <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-              Arrastrá un PDF aquí o hacé clic para seleccionar
+              Arrastra un PDF aquí o haz clic para seleccionar
             </p>
             <p className="text-xs text-gray-400 mt-1">Máximo 100 MB · Solo archivos PDF</p>
           </div>

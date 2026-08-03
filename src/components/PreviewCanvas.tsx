@@ -160,7 +160,7 @@ export function PreviewCanvas() {
             <path d="M8 7h8M8 11h8M8 15h5" />
           </svg>
           <p className="text-sm text-gray-400">
-            Cargá un PDF para ver la previsualización
+            Carga un PDF para ver la previsualización
           </p>
         </div>
       </div>

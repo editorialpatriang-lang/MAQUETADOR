@@ -174,12 +174,12 @@ npm run preview
 
 ### Uso rápido
 
-1. Arrastrá un PDF a la zona de carga o presioná **Ctrl+O**
-2. Configurá el cuadernillo (páginas por cuadernillo, gramaje, creep)
-3. Configurá tamaño de hoja, márgenes y marcas de producción
-4. Navegá entre hojas con los botones ← →
-5. Ajustá el zoom con los botones **−** / **+** / **Ajustar**
-6. Clic en **Exportar PDF** para descargar el archivo imposicionado
+1. Arrastra un PDF a la zona de carga o presiona **Ctrl+O**
+2. Configura el cuadernillo (páginas por cuadernillo, gramaje, creep)
+3. Configura tamaño de hoja, márgenes y marcas de producción
+4. Navega entre hojas con los botones ← →
+5. Ajusta el zoom con los botones **−** / **+** / **Ajustar**
+6. Haz clic en **Exportar PDF** para descargar el archivo imposicionado
 
 ---
 
