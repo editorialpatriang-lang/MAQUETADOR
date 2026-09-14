@@ -94,6 +94,53 @@ export function SheetSettings() {
         </div>
       )}
 
+      <Select
+        label="Material"
+        value={sheet.materialScale}
+        onChange={(v) => setSheetConfig({ materialScale: v as 'fit' | 'actual' })}
+        options={[
+          { value: 'fit', label: 'Ajustar al espacio (llena el pliego)' },
+          { value: 'actual', label: 'Tamaño real del PDF (fijo)' },
+        ]}
+      />
+
+      {sheet.materialScale === 'actual' && (
+        <div className="grid grid-cols-2 gap-2 items-end">
+          <NumberInput
+            label="Escala del material"
+            value={sheet.materialPercent}
+            onChange={(v) => setSheetConfig({ materialPercent: Math.max(1, Math.min(400, v)) })}
+            min={1}
+            max={400}
+            step={1}
+            unit="%"
+          />
+          <div className="flex gap-1 pb-1">
+            {[100, 105, 110].map((p) => (
+              <button
+                key={p}
+                onClick={() => setSheetConfig({ materialPercent: p })}
+                className={`px-2 py-1 text-xs rounded border transition-colors ${
+                  sheet.materialPercent === p
+                    ? 'bg-blue-100 dark:bg-blue-900 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300'
+                    : 'border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800'
+                }`}
+              >
+                {p}%
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {sheet.materialScale === 'actual' && (
+        <p className="text-xs text-gray-500">
+          El material mantiene el tamaño real del PDF origen ({sheet.materialPercent}%){' '}
+          aunque cambies márgenes. Si no cabe en el pliego, aumenta los pliegos o reduce
+          el porcentaje.
+        </p>
+      )}
+
       <Toggle
         label="Centrar contenido en la hoja"
         checked={sheet.centerContent}

@@ -1,5 +1,6 @@
 import type { ImpositionLayout, BookletConfig, SheetConfig } from '@/types/imposition';
 import type { NUpCell, ImpositionSheet } from '@/types/imposition';
+import { MAX_REASONABLE_SCALE } from '@/types/imposition';
 
 const MM_TO_PT = 2.834645669;
 
@@ -94,8 +95,15 @@ export function calculateBookletLayout(
   const usableH = sheetH - gm.top - gm.bottom;
   const halfW = usableW / 2 - gutter / 2;
 
-  // Escalar la página para que quepa en la mitad del pliego manteniendo su relación de aspecto
-  const scale = Math.min(halfW / pageWidth, usableH / pageHeight);
+  // Escala del material: 'fit' llena el área útil (comportamiento histórico,
+  // el arte se agranda/encoge al mover márgenes); 'actual' conserva el tamaño
+  // real de la página origen (100% o un porcentaje explícito), sin importar
+  // los márgenes.
+  const fitScale = Math.min(halfW / pageWidth, usableH / pageHeight);
+  const requestedScale = sheet.materialScale === 'fit'
+    ? fitScale
+    : sheet.materialPercent / 100;
+  const scale = Math.min(requestedScale, MAX_REASONABLE_SCALE);
   const cellW = pageWidth * scale;
   const cellH = pageHeight * scale;
 

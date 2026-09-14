@@ -73,6 +73,11 @@ export interface GripperConfig {
 }
 
 export type BleedMode = 'none' | 'scale' | 'crop' | 'extend';
+export type MaterialScaleMode = 'fit' | 'actual';
+
+// Cap de seguridad: más de 4x sobre el tamaño real del origen no tiene
+// sentido productivo y podría reventar el render (canvas gigante).
+export const MAX_REASONABLE_SCALE = 4;
 
 export interface SheetConfig {
   preset: SheetPreset;
@@ -86,6 +91,8 @@ export interface SheetConfig {
   gripper: GripperConfig;
   bleedMode: BleedMode;
   extendColor: string;
+  materialScale: MaterialScaleMode;
+  materialPercent: number;
 }
 
 /**
