@@ -54,6 +54,42 @@ function calcularCreepPerSheet(paperGsm: number, visualScale: number = 1): numbe
 }
 
 /**
+ * Normaliza el tamaño de cuadernillo a un valor seguro para saddle-stitch.
+ *
+ * El cuadernillo DEBE ser múltiplo de 4: con valores intermedios (6, 10, 14…)
+ * el loop de cuadernillos avanzaba de 6 en 6 pero cada uno se rellenaba a 8,
+ * los cuadernillos se traslapaban y las páginas 7-8 (etc.) salían DUPLICADAS
+ * en dos pliegos distintos. Por eso todo valor se redondea al múltiplo de 4
+ * más cercano (mínimo 4).
+ *
+ * @returns 0 = un solo cuadernillo con todas las páginas; >0 = múltiplo de 4.
+ */
+export function normalizeSignatureSize(rawSize: number, pageCount: number): number {
+  if (!Number.isFinite(rawSize) || rawSize <= 0) return 0;
+  if (pageCount <= 0 || rawSize >= pageCount) return 0;
+  const snapped = Math.max(4, Math.round(rawSize / 4) * 4);
+  if (snapped >= pageCount) return 0;
+  return snapped;
+}
+
+/**
+ * Páginas en blanco que se agregan para completar a múltiplo de 4.
+ * Con el cuadernillo normalizado, solo la cola del último cuadernillo
+ * puede aportar blancas; los cuadernillos completos aportan 0.
+ */
+export function getBookletBlanks(pageCount: number, signatureSize: number = 0): number {
+  if (pageCount <= 0) return 0;
+  const norm = normalizeSignatureSize(signatureSize, pageCount);
+  const sigSize = norm > 0 ? norm : pageCount;
+  let blanks = 0;
+  for (let sigStart = 0; sigStart < pageCount; sigStart += sigSize) {
+    const sigEnd = Math.min(sigStart + sigSize, pageCount);
+    blanks += Math.ceil((sigEnd - sigStart) / 4) * 4 - (sigEnd - sigStart);
+  }
+  return blanks;
+}
+
+/**
  * Calcula el creep máximo del cuadernillo (desplazamiento de la hoja más
  * interna respecto a la externa).
  *
@@ -72,7 +108,8 @@ export function calcularCreepAutomatico(
   signatureSize: number = 0,
   visualScale: number = 1,
 ): number {
-  const sigSize = signatureSize > 0 && signatureSize < pageCount ? signatureSize : pageCount;
+  const normalized = normalizeSignatureSize(signatureSize, pageCount);
+  const sigSize = normalized > 0 ? normalized : pageCount;
   const sigPadded = Math.ceil(sigSize / 4) * 4;
   const numSheets = sigPadded / 4;
   if (numSheets <= 1) return 0;
@@ -115,9 +152,7 @@ export function calculateBookletLayout(
     ? gm.top + (usableH - cellH) / 2
     : gm.top;
 
-  const sigSize = signatureSize > 0 && signatureSize < pageCount
-    ? signatureSize
-    : pageCount;
+  const sigSize = normalizeSignatureSize(signatureSize, pageCount) || pageCount;
 
   const visualScale = options?.creepVisualScale ?? 1;
 
@@ -236,7 +271,7 @@ export function buildSignatureOrder(
 }
 
 export function getBookletPagePreview(pageCount: number, signatureSize: number = 0): string[] {
-  const sigSize = signatureSize > 0 && signatureSize < pageCount ? signatureSize : pageCount;
+  const sigSize = normalizeSignatureSize(signatureSize, pageCount) || pageCount;
   const preview: string[] = [];
   for (let sigStart = 0; sigStart < pageCount; sigStart += sigSize) {
     const sigEnd = Math.min(sigStart + sigSize, pageCount);

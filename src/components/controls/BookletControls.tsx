@@ -1,5 +1,5 @@
 import { useDocumentStore } from '@/store/documentStore';
-import { calcularCreepAutomatico } from '@/lib/pdf/imposition/booklet';
+import { calcularCreepAutomatico, getBookletBlanks, normalizeSignatureSize } from '@/lib/pdf/imposition/booklet';
 import { NumberInput } from '@/components/ui/NumberInput';
 import { Toggle } from '@/components/ui/Toggle';
 import { Select } from '@/components/ui/Select';
@@ -28,17 +28,24 @@ export function BookletControls() {
 
   const creepAuto = calcularCreepAutomatico(pageCount, booklet.paperGsm, booklet.signatureSize);
   const totalPliegos = Math.ceil(Math.ceil(pageCount / 4) * 4 / 4);
-  const sigSize = booklet.signatureSize > 0 && booklet.signatureSize < pageCount
-    ? booklet.signatureSize
-    : pageCount;
+  // Valor efectivo que usa el motor: múltiplo de 4 (o 0 = todo junto).
+  const normalized = normalizeSignatureSize(booklet.signatureSize, pageCount);
+  const sigSize = normalized > 0 ? normalized : pageCount;
   const numCuadernillos = Math.ceil(pageCount / sigSize);
+  const blanks = getBookletBlanks(pageCount, booklet.signatureSize);
+  const snappedNote =
+    booklet.signatureSize > 0 && normalized > 0 && normalized !== booklet.signatureSize
+      ? ` (ajustado a ${normalized})`
+      : booklet.signatureSize > 0 && normalized === 0
+        ? ' (todo junto)'
+        : '';
 
   return (
     <div className="space-y-4">
       <NumberInput
-        label="Páginas por cuadernillo"
+        label="Páginas por cuadernillo (múltiplo de 4)"
         value={booklet.signatureSize}
-        onChange={(v) => setBookletConfig({ signatureSize: v })}
+        onChange={(v) => setBookletConfig({ signatureSize: Math.round(v) })}
         min={0}
         max={pageCount || 100}
         step={4}
@@ -46,8 +53,9 @@ export function BookletControls() {
       <p className="text-xs text-gray-400 -mt-2">
         {booklet.signatureSize <= 0
           ? '1 cuadernillo con todas las páginas.'
-          : `${numCuadernillos} cuadernillo${numCuadernillos !== 1 ? 's' : ''} de ${sigSize} págs c/u.`}{' '}
+          : `${numCuadernillos} cuadernillo${numCuadernillos !== 1 ? 's' : ''} de ${sigSize} págs c/u${snappedNote}.`}{' '}
         Total: {totalPliegos} {totalPliegos === 1 ? 'pliego' : 'pliegos'}.
+        {blanks > 0 && ` Se agregan ${blanks} en blanco al final del último cuadernillo.`}
       </p>
 
       <div className="space-y-2">
