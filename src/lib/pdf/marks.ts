@@ -98,7 +98,7 @@ export function calculateMarks(
   }
 
   if (config.foldMarks) {
-    drawBookletFoldLine(overlay, cells, sheetH, margins);
+    drawBookletFoldLine(overlay, cells, markLength, markOffset);
   }
 
   if (config.bindingStyle !== 'none') {
@@ -191,8 +191,8 @@ function drawBookletCropMarks(
 function drawBookletFoldLine(
   overlay: MarksOverlay,
   cells: NUpCell[],
-  sheetH: number,
-  margins: number,
+  markLength: number,
+  markOffset: number,
 ) {
   const validCells = cells.filter(c => c.pageIndex >= 0);
   if (validCells.length < 2) return;
@@ -201,21 +201,23 @@ function drawBookletFoldLine(
   const topY = Math.min(...validCells.map(c => c.y));
   const bottomY = Math.max(...validCells.map(c => c.y + c.height));
 
-  // Marca de pliegue extendida: desde el borde de la hoja hasta el arte
-  // (arriba) y desde el arte hasta el borde de la hoja (abajo).
+  // Marca de pliegue corta, del mismo tamaño que la marca de corte:
+  // un segmento punteado de largo markLength, separado del arte por
+  // markOffset, arriba y abajo del lomo. Igual que las crop marks, no
+  // cruza toda la hoja.
   overlay.foldLines.push({
     x1: spineX,
-    y1: 0,
+    y1: topY - markOffset - markLength,
     x2: spineX,
-    y2: topY - 2,
+    y2: topY - markOffset,
     dashed: true,
   });
 
   overlay.foldLines.push({
     x1: spineX,
-    y1: bottomY + 2,
+    y1: bottomY + markOffset,
     x2: spineX,
-    y2: sheetH,
+    y2: bottomY + markOffset + markLength,
     dashed: true,
   });
 }
