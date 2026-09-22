@@ -20,8 +20,8 @@ const CMYK_PATCHES: ColorBarPatch[] = [
 const GRAYSCALE_PATCHES: { c: string; pct: number; cmyk: CmykColor }[] = [
   { c: '#000000', pct: 100, cmyk: { c: 0, m: 0, y: 0, k: 1 } },
   { c: '#808080', pct: 50, cmyk: { c: 0, m: 0, y: 0, k: 0.5 } },
-  { c: '#a0a0a0', pct: 25, cmyk: { c: 0, m: 0, y: 0, k: 0.25 } },
-  { c: '#404040', pct: 10, cmyk: { c: 0, m: 0, y: 0, k: 0.1 } },
+  { c: '#404040', pct: 25, cmyk: { c: 0, m: 0, y: 0, k: 0.25 } },
+  { c: '#a0a0a0', pct: 10, cmyk: { c: 0, m: 0, y: 0, k: 0.1 } },
 ];
 
 export function calculateMarks(

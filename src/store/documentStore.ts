@@ -1,7 +1,4 @@
 import { create } from 'zustand';
-import {
-  SHEET_PRESETS,
-} from '@/types/imposition';
 import type {
   ImpositionType,
   Unit,
@@ -9,9 +6,7 @@ import type {
   BookletConfig,
   ProductionMarks,
   SheetConfig,
-  SheetPreset,
   GripperConfig,
-  BleedMode,
 } from '@/types/imposition';
 
 const DEFAULT_BOOKLET: BookletConfig = { signatureSize: 0, autoCreep: false, manualCreep: 0, paperGsm: 130 };
@@ -44,7 +39,6 @@ interface DocumentState {
   setImpositionType: (type: ImpositionType) => void;
   setBookletConfig: (config: Partial<BookletConfig>) => void;
   setSheetConfig: (config: Partial<SheetConfig>) => void;
-  setSheetPreset: (preset: SheetPreset) => void;
   setSheetOrientation: (orientation: Orientation) => void;
   setGripperConfig: (config: Partial<GripperConfig>) => void;
   setMarksConfig: (config: Partial<ProductionMarks>) => void;
@@ -146,14 +140,6 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
 
   setSheetConfig: (config) =>
     set((s) => ({ sheet: { ...s.sheet, ...config }, currentSheetIndex: 0 })),
-
-  setSheetPreset: (preset) => {
-    const size = SHEET_PRESETS[preset];
-    set((s) => ({
-      sheet: { ...s.sheet, preset, width: size.width, height: size.height, orientation: 'portrait' as const },
-      currentSheetIndex: 0,
-    }));
-  },
 
   setSheetOrientation: (orientation) =>
     set((s) => ({
