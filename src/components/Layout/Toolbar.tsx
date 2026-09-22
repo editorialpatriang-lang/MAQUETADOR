@@ -39,6 +39,8 @@ export function Toolbar() {
         fileName,
         pageCount,
         sheet.grainDirection,
+        sheet.bleedMode,
+        sheet.extendColor,
       );
 
       const blob = new Blob([pdfBytes as BlobPart], { type: 'application/pdf' });

@@ -25,7 +25,6 @@ const UNIT_OPTIONS: { value: Unit; label: string }[] = [
 export function SheetSettings() {
   const sheet = useDocumentStore((s) => s.sheet);
   const unit = useDocumentStore((s) => s.unit);
-  const setSheetPreset = useDocumentStore((s) => s.setSheetPreset);
   const setSheetConfig = useDocumentStore((s) => s.setSheetConfig);
   const setSheetOrientation = useDocumentStore((s) => s.setSheetOrientation);
   const setUnit = useDocumentStore((s) => s.setUnit);
@@ -37,12 +36,18 @@ export function SheetSettings() {
     }
   };
 
+  const handlePresetChange = (preset: SheetPreset) => {
+    const size = SHEET_PRESETS[preset];
+    // Preservar orientación al cambiar de preset
+    setSheetConfig({ preset, width: size.width, height: size.height });
+  };
+
   return (
     <div className="space-y-3">
       <Select
         label="Tamaño de hoja"
         value={sheet.preset}
-        onChange={(v) => setSheetPreset(v)}
+        onChange={handlePresetChange}
         options={PRESET_OPTIONS}
       />
 

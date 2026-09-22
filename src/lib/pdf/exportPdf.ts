@@ -1,6 +1,12 @@
-import { PDFDocument, rgb, cmyk, degrees } from 'pdf-lib';
+import { PDFDocument, rgb, cmyk, pushGraphicsState, popGraphicsState, clip, endPath, rectangle } from 'pdf-lib';
 import type { ProductionMarks, ImpositionLayout } from '@/types/imposition';
 import { calculateMarks } from './marks';
+
+function hexToRgb(hex: string) {
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  if (!m) return rgb(1, 1, 1);
+  return rgb(parseInt(m[1], 16) / 255, parseInt(m[2], 16) / 255, parseInt(m[3], 16) / 255);
+}
 
 export async function exportPdf(
   originalPdfBytes: ArrayBuffer,
@@ -12,6 +18,8 @@ export async function exportPdf(
   fileName?: string,
   pageCount?: number,
   grainDirection?: string,
+  bleedMode?: string,
+  extendColor?: string,
 ): Promise<Uint8Array> {
   const srcDoc = await PDFDocument.load(originalPdfBytes, { ignoreEncryption: false });
   const outDoc = await PDFDocument.create();
@@ -47,27 +55,54 @@ export async function exportPdf(
       const embeddedPage = await outDoc.embedPage(srcPage);
 
       const srcSize = srcPage.getSize();
-      const scaleX = cell.width / srcSize.width;
-      const scaleY = cell.height / srcSize.height;
-      const scale = Math.min(scaleX, scaleY);
+      const baseScaleX = cell.width / srcSize.width;
+      const baseScaleY = cell.height / srcSize.height;
+      const baseScale = Math.min(baseScaleX, baseScaleY);
 
-      const drawW = srcSize.width * scale;
-      const drawH = srcSize.height * scale;
+      const drawW = srcSize.width * baseScale;
+      const drawH = srcSize.height * baseScale;
       const offsetX = cell.x + (cell.width - drawW) / 2;
       const offsetY = sheetHPoints - cell.y - cell.height + (cell.height - drawH) / 2;
 
-      if (cell.rotation === 180) {
-        // Rotar 180° alrededor del centro de la celda.
-        // pdf-lib rota alrededor del punto (x, y), por lo que para que el
-        // resultado quede centrado, el ancla debe ser la esquina opuesta.
+      if (bleedMode === 'scale' && marksConfig.bleed > 0) {
+        // Escalar para llenar zona de sangrado y recortar al área de página
+        const bleedScale = (cell.width + 2 * marksConfig.bleed) / cell.width;
+        const scaledW = drawW * bleedScale;
+        const scaledH = drawH * bleedScale;
+        const scaledOffsetX = cell.x + (cell.width - scaledW) / 2;
+        const scaledOffsetY = sheetHPoints - cell.y - cell.height + (cell.height - scaledH) / 2;
+
+        page.pushOperators(
+          pushGraphicsState(),
+          rectangle(cell.x, sheetHPoints - cell.y - cell.height, cell.width, cell.height),
+          clip(),
+          endPath(),
+        );
         page.drawPage(embeddedPage, {
-          x: offsetX + drawW,
-          y: offsetY + drawH,
+          x: scaledOffsetX,
+          y: scaledOffsetY,
+          width: scaledW,
+          height: scaledH,
+        });
+        page.pushOperators(popGraphicsState());
+      } else if (bleedMode === 'extend' && marksConfig.bleed > 0) {
+        // Extender con color de fondo en la zona de sangrado
+        const b = marksConfig.bleed;
+        page.drawRectangle({
+          x: cell.x - b,
+          y: sheetHPoints - cell.y - cell.height - b,
+          width: cell.width + 2 * b,
+          height: cell.height + 2 * b,
+          color: hexToRgb(extendColor || '#ffffff'),
+        });
+        page.drawPage(embeddedPage, {
+          x: offsetX,
+          y: offsetY,
           width: drawW,
           height: drawH,
-          rotate: degrees(180),
         });
       } else {
+        // 'none' y 'crop': colocar tal cual (comportamiento histórico)
         page.drawPage(embeddedPage, {
           x: offsetX,
           y: offsetY,

@@ -68,6 +68,10 @@ export function PreviewCanvas() {
       sW,
       sH,
       previewScale,
+      sheet.bleedMode,
+      marks.bleed,
+      sheet.extendColor,
+      marks.overprintPreview,
     );
 
     // Si hubo un render más nuevo, no dibujar el dorso
@@ -83,6 +87,10 @@ export function PreviewCanvas() {
         sW,
         sH,
         previewScale,
+        sheet.bleedMode,
+        marks.bleed,
+        sheet.extendColor,
+        marks.overprintPreview,
       );
     }
   }, [
@@ -142,6 +150,15 @@ export function PreviewCanvas() {
   const zoom100 = () => setPreviewScale(1);
 
   const canDuplex = true;
+  const isOddSheet = currentSheetIndex % 2 === 1;
+
+  // En modo F+D siempre trabajamos con hojas pares (frente); si estabas en
+  // una impar, retroceder una para emparejar correctamente con su dorso.
+  useEffect(() => {
+    if (duplexMode && isOddSheet) {
+      setCurrentSheetIndex(currentSheetIndex - 1);
+    }
+  }, [duplexMode, isOddSheet]);
 
   if (!originalPdfBytes || pageCount === 0) {
     return (

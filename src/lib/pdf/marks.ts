@@ -20,8 +20,8 @@ const CMYK_PATCHES: ColorBarPatch[] = [
 const GRAYSCALE_PATCHES: { c: string; pct: number; cmyk: CmykColor }[] = [
   { c: '#000000', pct: 100, cmyk: { c: 0, m: 0, y: 0, k: 1 } },
   { c: '#808080', pct: 50, cmyk: { c: 0, m: 0, y: 0, k: 0.5 } },
-  { c: '#404040', pct: 25, cmyk: { c: 0, m: 0, y: 0, k: 0.25 } },
-  { c: '#a0a0a0', pct: 10, cmyk: { c: 0, m: 0, y: 0, k: 0.1 } },
+  { c: '#a0a0a0', pct: 25, cmyk: { c: 0, m: 0, y: 0, k: 0.25 } },
+  { c: '#404040', pct: 10, cmyk: { c: 0, m: 0, y: 0, k: 0.1 } },
 ];
 
 export function calculateMarks(
@@ -102,13 +102,11 @@ export function calculateMarks(
   }
 
   if (config.bindingStyle !== 'none') {
-    const spineX = margins + 15;
-    const spacing = config.bindingStyle === 'wire-o' ? 30 : 28;
-    let cy = margins + 30;
-    while (cy < sheetH - margins) {
-      overlay.bindingMarks.push({ cx: spineX, cy, radius: config.bindingStyle === 'wire-o' ? 4 : 3 });
-      cy += spacing;
-    }
+    drawBindingMarks(overlay, sheetW, sheetH, margins, config.bindingStyle);
+  }
+
+  if (config.collatingMarks) {
+    drawCollatingMarks(overlay, cells, sheetH, margins);
   }
 
   if (config.signatureNumbering && sheetIndex !== undefined && totalSheets !== undefined) {
@@ -220,4 +218,62 @@ function drawBookletFoldLine(
     y2: bottomY + markOffset + markLength,
     dashed: true,
   });
+}
+
+function drawBindingMarks(
+  overlay: MarksOverlay,
+  sheetW: number,
+  sheetH: number,
+  margins: number,
+  style: 'none' | 'wire-o' | 'spiral' | 'binder',
+) {
+  if (style === 'binder') {
+    // Carpeta 3 anillos: tres perforaciones centradas en el lomo izquierdo
+    const spineX = margins + 15;
+    const usableH = sheetH - 2 * margins;
+    const positions = [0.25, 0.5, 0.75];
+    for (const pct of positions) {
+      overlay.bindingMarks.push({
+        cx: spineX,
+        cy: margins + pct * usableH,
+        radius: 3,
+      });
+    }
+  } else {
+    // Wire-O y Espiral: perforaciones cada N puntos a lo largo del lomo
+    const spineX = margins + 15;
+    const spacing = style === 'wire-o' ? 30 : 28;
+    const radius = style === 'wire-o' ? 4 : 3;
+    let cy = margins + 30;
+    while (cy < sheetH - margins) {
+      overlay.bindingMarks.push({ cx: spineX, cy, radius });
+      cy += spacing;
+    }
+  }
+}
+
+function drawCollatingMarks(
+  overlay: MarksOverlay,
+  cells: NUpCell[],
+  sheetH: number,
+  margins: number,
+) {
+  // Marcas de encuadernación: escalones en el borde superior para verificar
+  // el orden correcto de los cuadernillos al reunirlos.
+  const validCells = cells.filter(c => c.pageIndex >= 0);
+  if (validCells.length < 2) return;
+
+  const spineX = (validCells[0].x + validCells[0].width + validCells[1].x) / 2;
+  const stepW = 6;
+  const stepH = 4;
+  const numSteps = 5;
+
+  for (let i = 0; i < numSteps; i++) {
+    overlay.collatingMarks.push({
+      x: spineX - (numSteps * stepW) / 2 + i * stepW,
+      y: sheetH - margins + 2 + i * stepH,
+      w: stepW,
+      h: stepH,
+    });
+  }
 }

@@ -55,6 +55,14 @@ export function MarksControls() {
         checked={marks.foldMarks}
         onChange={(v) => setMarksConfig({ foldMarks: v })}
       />
+      <Toggle
+        label="Marcas de encuadernación"
+        checked={marks.collatingMarks}
+        onChange={(v) => setMarksConfig({ collatingMarks: v })}
+      />
+      <p className="text-xs text-gray-400">
+        Escalones en el borde superior para verificar el orden de cuadernillos al reunirlos.
+      </p>
       {marks.foldMarks && (
         <p className="text-xs text-gray-400">
           Línea punteada en el lomo (centro del pliego) indicando dónde doblar el folleto.

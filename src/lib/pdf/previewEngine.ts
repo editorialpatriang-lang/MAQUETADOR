@@ -29,6 +29,10 @@ class PreviewEngine {
     sheetW: number,
     sheetH: number,
     scale: number,
+    bleedMode?: string,
+    bleed?: number,
+    extendColor?: string,
+    overprintPreview?: boolean,
   ): Promise<void> {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -64,11 +68,25 @@ class PreviewEngine {
         const cw = cell.width * scale;
         const ch = cell.height * scale;
 
-        if (cell.rotation === 180) {
-          ctx.translate(cx + cw / 2, cy + ch / 2);
-          ctx.rotate(Math.PI);
-          ctx.drawImage(pageCanvas, -cw / 2, -ch / 2, cw, ch);
+        if (bleedMode === 'extend' && bleed && bleed > 0) {
+          // Extender con color de fondo
+          const b = bleed * scale;
+          ctx.fillStyle = extendColor || '#ffffff';
+          ctx.fillRect(cx - b, cy - b, cw + 2 * b, ch + 2 * b);
+          ctx.drawImage(pageCanvas, cx, cy, cw, ch);
+        } else if (bleedMode === 'scale' && bleed && bleed > 0) {
+          // Escalar para llenar zona de sangrado y recortar
+          const bleedScale = (cell.width + 2 * bleed) / cell.width;
+          const scaledW = cw * bleedScale;
+          const scaledH = ch * bleedScale;
+          const scaledX = cx + (cw - scaledW) / 2;
+          const scaledY = cy + (ch - scaledH) / 2;
+          ctx.beginPath();
+          ctx.rect(cx, cy, cw, ch);
+          ctx.clip();
+          ctx.drawImage(pageCanvas, scaledX, scaledY, scaledW, scaledH);
         } else {
+          // 'none' y 'crop': tal cual
           ctx.drawImage(pageCanvas, cx, cy, cw, ch);
         }
 
@@ -81,7 +99,7 @@ class PreviewEngine {
     }
 
     if (marks) {
-      this.drawMarks(ctx, marks, scale);
+      this.drawMarks(ctx, marks, scale, overprintPreview);
     }
   }
 
@@ -89,6 +107,7 @@ class PreviewEngine {
     ctx: CanvasRenderingContext2D,
     marks: MarksOverlay,
     scale: number,
+    overprintPreview?: boolean,
   ) {
     ctx.save();
     ctx.strokeStyle = '#000000';
@@ -139,6 +158,9 @@ class PreviewEngine {
     }
 
     for (const patch of marks.colorBarPatches) {
+      if (overprintPreview) {
+        ctx.globalAlpha = 0.5;
+      }
       ctx.fillStyle = patch.color;
       ctx.fillRect(
         patch.x * scale,
@@ -146,6 +168,7 @@ class PreviewEngine {
         patch.w * scale,
         patch.h * scale,
       );
+      ctx.globalAlpha = 1;
       ctx.strokeStyle = '#000';
       ctx.lineWidth = 0.3;
       ctx.strokeRect(
