@@ -2,7 +2,6 @@ import { useDocumentStore } from '@/store/documentStore';
 import { Select } from '@/components/ui/Select';
 import { NumberInput } from '@/components/ui/NumberInput';
 import { Toggle } from '@/components/ui/Toggle';
-import { SHEET_PRESETS } from '@/types/imposition';
 import type { SheetPreset, Unit, Orientation, BleedMode, GrainDirection } from '@/types/imposition';
 import { pointsToUnit, unitToPoints } from '@/types/imposition';
 
@@ -27,6 +26,7 @@ export function SheetSettings() {
   const unit = useDocumentStore((s) => s.unit);
   const setSheetConfig = useDocumentStore((s) => s.setSheetConfig);
   const setSheetOrientation = useDocumentStore((s) => s.setSheetOrientation);
+  const setSheetPreset = useDocumentStore((s) => s.setSheetPreset);
   const setUnit = useDocumentStore((s) => s.setUnit);
   const setGripperConfig = useDocumentStore((s) => s.setGripperConfig);
 
@@ -36,10 +36,9 @@ export function SheetSettings() {
     }
   };
 
+  // El store aplica el preset respetando la orientacion actual (ver setSheetPreset).
   const handlePresetChange = (preset: SheetPreset) => {
-    const size = SHEET_PRESETS[preset];
-    // Preservar orientación al cambiar de preset
-    setSheetConfig({ preset, width: size.width, height: size.height });
+    setSheetPreset(preset);
   };
 
   return (

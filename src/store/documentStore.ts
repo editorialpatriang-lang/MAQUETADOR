@@ -7,10 +7,14 @@ import type {
   ProductionMarks,
   SheetConfig,
   GripperConfig,
+  SheetPreset,
 } from '@/types/imposition';
+import { SHEET_PRESETS } from '@/types/imposition';
 
 const DEFAULT_BOOKLET: BookletConfig = { signatureSize: 0, autoCreep: false, manualCreep: 0, paperGsm: 130 };
 const DEFAULT_MARKS: ProductionMarks = { cropMarks: true, cropMarkLength: 20, cropMarkOffset: 6, cropMarkThickness: 0.25, registrationMarks: false, bleed: 0, colorBar: false, colorBarType: 'CMYK', pdfxOutput: false, pdfxProfile: 'FOGRA39', foldMarks: false, bindingStyle: 'none', collatingMarks: false, signatureNumbering: false, overprintPreview: false };
+// MegaA3 en horizontal (480 x 330 mm), coherente con orientation: 'landscape'.
+// setSheetPreset respeta esta orientacion al aplicar cualquier otro preset.
 const DEFAULT_SHEET: SheetConfig = { preset: 'MegaA3', width: 1360.63, height: 935.43, orientation: 'landscape', grainDirection: 'long', margins: 36, gutter: 14, centerContent: true, gripper: { enabled: false, size: 34, side: 'bottom' }, bleedMode: 'none', extendColor: '#ffffff', materialScale: 'fit', materialPercent: 100 };
 
 interface DocumentState {
@@ -40,6 +44,7 @@ interface DocumentState {
   setBookletConfig: (config: Partial<BookletConfig>) => void;
   setSheetConfig: (config: Partial<SheetConfig>) => void;
   setSheetOrientation: (orientation: Orientation) => void;
+  setSheetPreset: (preset: SheetPreset) => void;
   setGripperConfig: (config: Partial<GripperConfig>) => void;
   setMarksConfig: (config: Partial<ProductionMarks>) => void;
   setUnit: (unit: Unit) => void;
@@ -151,6 +156,19 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       },
       currentSheetIndex: 0,
     })),
+
+  setSheetPreset: (preset) =>
+    set((s) => {
+      const size = SHEET_PRESETS[preset];
+      if (!size) return {};
+      // Los presets se guardan en vertical. Si la hoja actual estaba en
+      // horizontal, se invierte el preset para respetar la orientacion elegida
+      // (si no, orientation queda mintiendo y la fibra queda mal definida).
+      const wasLandscape = s.sheet.width > s.sheet.height;
+      const width = wasLandscape ? size.height : size.width;
+      const height = wasLandscape ? size.width : size.height;
+      return { sheet: { ...s.sheet, preset, width, height }, currentSheetIndex: 0 };
+    }),
 
   setGripperConfig: (config) =>
     set((s) => ({
