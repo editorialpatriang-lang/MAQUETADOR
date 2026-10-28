@@ -61,6 +61,26 @@ export interface HeaderFooterConfig {
   color: string;
 }
 
+export interface LayerConfig {
+  enabled: boolean;
+  layers: Array<{ name: string; visible: boolean; printable: boolean }>;
+}
+
+export interface StickerConfig {
+  enabled: boolean;
+  stickers: Array<{
+    id: string;
+    type: 'page' | 'image' | 'shape';
+    pageIndex?: number;
+    imageBytes?: ArrayBuffer;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    rotation: number;
+  }>;
+}
+
 export type BindingStyle = 'none' | 'wire-o' | 'spiral' | 'binder';
 
 export interface ProductionMarks {
@@ -80,6 +100,8 @@ export interface ProductionMarks {
   signatureNumbering: boolean;
   overprintPreview: boolean;
   headerFooter: HeaderFooterConfig;
+  layers: LayerConfig;
+  stickers: StickerConfig;
 }
 
 export interface GripperConfig {
