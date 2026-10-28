@@ -12,7 +12,7 @@ import type {
 } from '@/types/imposition';
 import { SHEET_PRESETS } from '@/types/imposition';
 
-const DEFAULT_BOOKLET: BookletConfig = { signatureSize: 0, autoCreep: false, manualCreep: 0, paperGsm: 130 };
+const DEFAULT_BOOKLET: BookletConfig = { signatureSize: 0, autoCreep: false, manualCreep: 0, paperGsm: 130, autoFill: true };
 const DEFAULT_NUP: NUpConfig = { columns: 2, rows: 2, allowRotation: true, autoFill: true };
 const DEFAULT_MARKS: ProductionMarks = { cropMarks: true, cropMarkLength: 20, cropMarkOffset: 6, cropMarkThickness: 0.25, registrationMarks: false, bleed: 0, colorBar: false, colorBarType: 'CMYK', pdfxOutput: false, pdfxProfile: 'FOGRA39', foldMarks: false, bindingStyle: 'none', collatingMarks: false, signatureNumbering: false, overprintPreview: false, headerFooter: { enabled: false, headerText: '', footerText: '', fontSize: 8, color: '#000000' }, layers: { enabled: false, layers: [] }, stickers: { enabled: false, stickers: [] } };
 // MegaA3 en horizontal (480 x 330 mm), coherente con orientation: 'landscape'.

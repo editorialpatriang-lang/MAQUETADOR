@@ -44,6 +44,7 @@ export interface BookletConfig {
   autoCreep: boolean;
   manualCreep: number;
   paperGsm: number;
+  autoFill: boolean;
 }
 
 export interface NUpConfig {

@@ -77,7 +77,8 @@ export function normalizeSignatureSize(rawSize: number, pageCount: number): numb
  * Con el cuadernillo normalizado, solo la cola del último cuadernillo
  * puede aportar blancas; los cuadernillos completos aportan 0.
  */
-export function getBookletBlanks(pageCount: number, signatureSize: number = 0): number {
+export function getBookletBlanks(pageCount: number, signatureSize: number = 0, autoFill: boolean = true): number {
+  if (!autoFill) return 0;
   if (pageCount <= 0) return 0;
   const norm = normalizeSignatureSize(signatureSize, pageCount);
   const sigSize = norm > 0 ? norm : pageCount;

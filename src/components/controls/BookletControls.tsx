@@ -32,7 +32,8 @@ export function BookletControls() {
   const normalized = normalizeSignatureSize(booklet.signatureSize, pageCount);
   const sigSize = normalized > 0 ? normalized : pageCount;
   const numCuadernillos = Math.ceil(pageCount / sigSize);
-  const blanks = getBookletBlanks(pageCount, booklet.signatureSize);
+  const blanks = getBookletBlanks(pageCount, booklet.signatureSize, booklet.autoFill);
+  const sigSheets = Math.ceil(sigSize / 4);
   const snappedNote =
     booklet.signatureSize > 0 && normalized > 0 && normalized !== booklet.signatureSize
       ? ` (ajustado a ${normalized})`
@@ -43,7 +44,7 @@ export function BookletControls() {
   return (
     <div className="space-y-4">
       <NumberInput
-        label="Páginas por cuadernillo (múltiplo de 4)"
+        label="Encuadernación"
         value={booklet.signatureSize}
         onChange={(v) => setBookletConfig({ signatureSize: Math.round(v) })}
         min={0}
@@ -54,9 +55,15 @@ export function BookletControls() {
         {booklet.signatureSize <= 0
           ? '1 cuadernillo con todas las páginas.'
           : `${numCuadernillos} cuadernillo${numCuadernillos !== 1 ? 's' : ''} de ${sigSize} págs c/u${snappedNote}.`}{' '}
-        Total: {totalPliegos} {totalPliegos === 1 ? 'pliego' : 'pliegos'}.
-        {blanks > 0 && ` Se agregan ${blanks} en blanco al final del último cuadernillo.`}
+        Tamaño del pliego: {sigSheets} {sigSheets === 1 ? 'hoja' : 'hojas'}.
+        {blanks > 0 && booklet.autoFill && ` Se agregan ${blanks} en blanco al final del último cuadernillo.`}
       </p>
+
+      <Toggle
+        label="Completar último pliego"
+        checked={booklet.autoFill}
+        onChange={(v) => setBookletConfig({ autoFill: v })}
+      />
 
       <div className="space-y-2">
         <Select
