@@ -2,6 +2,11 @@ import { useEffect, useRef, useCallback, useState } from 'react';
 import { useDocumentStore } from '@/store/documentStore';
 import { previewEngine } from '@/lib/pdf/previewEngine';
 import { calculateBookletLayout } from '@/lib/pdf/imposition/booklet';
+import { calculateNUpLayout } from '@/lib/pdf/imposition/nup';
+import { calculatePerfectBoundLayout } from '@/lib/pdf/imposition/perfectbound';
+import { calculateCardsLayout } from '@/lib/pdf/imposition/cards';
+import { calculateCutStackLayout } from '@/lib/pdf/imposition/cutstack';
+import { calculateWorkAndTurnLayout } from '@/lib/pdf/imposition/workandturn';
 import { calculateMarks } from '@/lib/pdf/marks';
 import type { ImpositionLayout } from '@/types/imposition';
 
@@ -11,7 +16,22 @@ function getLayout(
   pageH: number,
   store: ReturnType<typeof useDocumentStore.getState>,
 ): ImpositionLayout {
-  return calculateBookletLayout(pageCount, pageW, pageH, store.booklet, store.sheet, { creepVisualScale: 1 });
+  switch (store.impositionType) {
+    case 'nup':
+      return calculateNUpLayout(pageCount, pageW, pageH, store.nup, store.sheet);
+    case 'perfectbound':
+      return calculatePerfectBoundLayout(pageCount, pageW, pageH, store.sheet);
+    case 'cards':
+      return calculateCardsLayout(pageCount, pageW, pageH, store.nup.columns, store.nup.rows, store.sheet);
+    case 'cutstack':
+      return calculateCutStackLayout(pageCount, pageW, pageH, store.nup.columns, store.nup.rows, store.sheet);
+    case 'workandturn':
+      return calculateWorkAndTurnLayout(pageCount, pageW, pageH, store.sheet, false);
+    case 'workandtumble':
+      return calculateWorkAndTurnLayout(pageCount, pageW, pageH, store.sheet, true);
+    default:
+      return calculateBookletLayout(pageCount, pageW, pageH, store.booklet, store.sheet, { creepVisualScale: 1 });
+  }
 }
 
 export function PreviewCanvas() {
@@ -24,6 +44,7 @@ export function PreviewCanvas() {
   const originalPdfBytes = useDocumentStore((s) => s.originalPdfBytes);
   const originalPageW = useDocumentStore((s) => s.originalPageWidth);
   const originalPageH = useDocumentStore((s) => s.originalPageHeight);
+  const originalBleed = useDocumentStore((s) => s.originalBleed);
   const booklet = useDocumentStore((s) => s.booklet);
   const sheet = useDocumentStore((s) => s.sheet);
   const marks = useDocumentStore((s) => s.marks);
@@ -72,6 +93,7 @@ export function PreviewCanvas() {
       marks.bleed,
       sheet.extendColor,
       marks.overprintPreview,
+      originalBleed,
     );
 
     // Si hubo un render más nuevo, no dibujar el dorso
@@ -91,6 +113,7 @@ export function PreviewCanvas() {
         marks.bleed,
         sheet.extendColor,
         marks.overprintPreview,
+        originalBleed,
       );
     }
   }, [

@@ -33,6 +33,7 @@ class PreviewEngine {
     bleed?: number,
     extendColor?: string,
     overprintPreview?: boolean,
+    sourceBleed?: number,
   ): Promise<void> {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -54,7 +55,7 @@ class PreviewEngine {
       let pageCanvas: HTMLCanvasElement | null = this.pageCache.get(key) ?? null;
 
       if (!pageCanvas) {
-        pageCanvas = await renderPageToCanvas(cell.pageIndex, Math.round(cell.width), Math.round(cell.height));
+        pageCanvas = await renderPageToCanvas(cell.pageIndex, Math.round(cell.width), Math.round(cell.height), sourceBleed);
         if (pageCanvas) {
           this.pageCache.set(key, pageCanvas);
         }

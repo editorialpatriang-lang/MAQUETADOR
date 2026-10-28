@@ -1,7 +1,10 @@
 import { FileDropzone } from '@/components/FileDropzone';
 import { BookletControls } from '@/components/controls/BookletControls';
+import { NUpControls } from '@/components/controls/NUpControls';
 import { SheetSettings } from '@/components/controls/SheetSettings';
 import { MarksControls } from '@/components/controls/MarksControls';
+import { useDocumentStore } from '@/store/documentStore';
+import { Select } from '@/components/ui/Select';
 
 interface SidebarProps {
   open: boolean;
@@ -16,9 +19,32 @@ function Section({ title, children }: { title: string; children: React.ReactNode
     </div>
   );
 }
-
 function ControlsForType() {
-  return <BookletControls />;
+  const impositionType = useDocumentStore((s) => s.impositionType);
+  const setImpositionType = useDocumentStore((s) => s.setImpositionType);
+  return (
+    <div className="space-y-3">
+      <Select
+        label="Tipo de imposición"
+        value={impositionType}
+        onChange={(v) => setImpositionType(v as any)}
+        options={[
+          { value: 'booklet', label: 'Folleto (Booklet)' },
+          { value: 'nup', label: 'N-up (Grilla)' },
+          { value: 'perfectbound', label: 'Perfect Bound' },
+          { value: 'cards', label: 'Tarjetas (Cards)' },
+          { value: 'cutstack', label: 'Cut & Stack' },
+          { value: 'workandturn', label: 'Work & Turn' },
+          { value: 'workandtumble', label: 'Work & Tumble' },
+        ]}
+      />
+      {impositionType === 'booklet' && <BookletControls />}
+      {(impositionType === 'nup' || impositionType === 'cards' || impositionType === 'cutstack') && <NUpControls />}
+      {(impositionType === 'perfectbound' || impositionType === 'workandturn' || impositionType === 'workandtumble') && (
+        <p className="text-xs text-gray-400">Configuración automática según la hoja.</p>
+      )}
+    </div>
+  );
 }
 
 export function Sidebar({ open, onToggle }: SidebarProps) {

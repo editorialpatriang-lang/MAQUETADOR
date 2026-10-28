@@ -25,6 +25,7 @@ export async function renderPageToCanvas(
   pageIndex: number,
   targetWidth: number,
   targetHeight: number,
+  sourceBleed: number = 0,
 ): Promise<HTMLCanvasElement | null> {
   if (!currentDoc) return null;
 
@@ -33,8 +34,15 @@ export async function renderPageToCanvas(
 
     // Viewport base a escala 1 — el escalado y centrado se aplican al contexto
     const baseViewport = page.getViewport({ scale: 1 });
-    const scaleX = targetWidth / baseViewport.width;
-    const scaleY = targetHeight / baseViewport.height;
+    const mediaW = baseViewport.width;
+    const mediaH = baseViewport.height;
+
+    const sb = sourceBleed > 0 ? sourceBleed : 0;
+    const trimW = sb > 0 ? mediaW - 2 * sb : mediaW;
+    const trimH = sb > 0 ? mediaH - 2 * sb : mediaH;
+
+    const scaleX = targetWidth / trimW;
+    const scaleY = targetHeight / trimH;
     const scale = Math.min(scaleX, scaleY);
 
     // Limitar la resolución de renderizado para preview (rendimiento)
@@ -52,21 +60,25 @@ export async function renderPageToCanvas(
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, renderW, renderH);
 
-    const drawW = baseViewport.width * scale * renderScale;
-    const drawH = baseViewport.height * scale * renderScale;
-    const offsetX = (renderW - drawW) / 2;
-    const offsetY = (renderH - drawH) / 2;
+    // Renderizar la página completa en un canvas temporal a escala media.
+    const fullW = Math.max(1, Math.round(mediaW * scale * renderScale));
+    const fullH = Math.max(1, Math.round(mediaH * scale * renderScale));
+    const fullCanvas = document.createElement('canvas');
+    fullCanvas.width = fullW;
+    fullCanvas.height = fullH;
+    const fullCtx = fullCanvas.getContext('2d');
+    if (!fullCtx) return null;
+    fullCtx.fillStyle = '#ffffff';
+    fullCtx.fillRect(0, 0, fullW, fullH);
+    fullCtx.scale(scale * renderScale, scale * renderScale);
+    await page.render({ canvasContext: fullCtx, viewport: baseViewport }).promise;
 
-    // Patrón recomendado por pdf.js: transladar y escalar el contexto
-    // antes de renderizar con el viewport base. Evita renders en blanco
-    // que ocurren al combinar `transform` con un viewport ya escalado.
-    ctx.translate(offsetX, offsetY);
-    ctx.scale(scale * renderScale, scale * renderScale);
-
-    await page.render({
-      canvasContext: ctx,
-      viewport: baseViewport,
-    }).promise;
+    // Recortar la zona de trim (sin bleed) del canvas temporal.
+    const sx = sb * scale * renderScale;
+    const sy = sb * scale * renderScale;
+    const sw = trimW * scale * renderScale;
+    const sh = trimH * scale * renderScale;
+    ctx.drawImage(fullCanvas, sx, sy, sw, sh, 0, 0, renderW, renderH);
 
     return canvas;
   } catch {

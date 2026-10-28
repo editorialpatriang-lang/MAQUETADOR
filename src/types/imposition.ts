@@ -1,4 +1,4 @@
-export type ImpositionType = 'booklet' | 'nup';
+export type ImpositionType = 'booklet' | 'nup' | 'perfectbound' | 'cards' | 'cutstack' | 'workandturn' | 'workandtumble';
 
 export type Unit = 'mm' | 'cm' | 'in';
 

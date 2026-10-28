@@ -2,11 +2,31 @@ import { useDocumentStore } from '@/store/documentStore';
 import { Button } from '@/components/ui/Button';
 import { exportPdf } from '@/lib/pdf/exportPdf';
 import { calculateBookletLayout } from '@/lib/pdf/imposition/booklet';
+import { calculateNUpLayout } from '@/lib/pdf/imposition/nup';
+import { calculatePerfectBoundLayout } from '@/lib/pdf/imposition/perfectbound';
+import { calculateCardsLayout } from '@/lib/pdf/imposition/cards';
+import { calculateCutStackLayout } from '@/lib/pdf/imposition/cutstack';
+import { calculateWorkAndTurnLayout } from '@/lib/pdf/imposition/workandturn';
 import type { ImpositionLayout } from '@/types/imposition';
 
 function getLayout(store: ReturnType<typeof useDocumentStore.getState>): ImpositionLayout {
-  const { pageCount, originalPageWidth, originalPageHeight, booklet, sheet } = store;
-  return calculateBookletLayout(pageCount, originalPageWidth, originalPageHeight, booklet, sheet);
+  const { pageCount, originalPageWidth, originalPageHeight, booklet, sheet, nup, impositionType } = store;
+  switch (impositionType) {
+    case 'nup':
+      return calculateNUpLayout(pageCount, originalPageWidth, originalPageHeight, nup, sheet);
+    case 'perfectbound':
+      return calculatePerfectBoundLayout(pageCount, originalPageWidth, originalPageHeight, sheet);
+    case 'cards':
+      return calculateCardsLayout(pageCount, originalPageWidth, originalPageHeight, nup.columns, nup.rows, sheet);
+    case 'cutstack':
+      return calculateCutStackLayout(pageCount, originalPageWidth, originalPageHeight, nup.columns, nup.rows, sheet);
+    case 'workandturn':
+      return calculateWorkAndTurnLayout(pageCount, originalPageWidth, originalPageHeight, sheet, false);
+    case 'workandtumble':
+      return calculateWorkAndTurnLayout(pageCount, originalPageWidth, originalPageHeight, sheet, true);
+    default:
+      return calculateBookletLayout(pageCount, originalPageWidth, originalPageHeight, booklet, sheet);
+  }
 }
 
 export function Toolbar() {
@@ -41,6 +61,7 @@ export function Toolbar() {
         sheet.grainDirection,
         sheet.bleedMode,
         sheet.extendColor,
+        store.originalBleed,
       );
 
       const blob = new Blob([pdfBytes as BlobPart], { type: 'application/pdf' });
