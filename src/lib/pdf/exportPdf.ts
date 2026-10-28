@@ -74,7 +74,17 @@ export async function exportPdf(
       const boundingBox = sb > 0
         ? { left: sb, bottom: sb, right: mediaSize.width - sb, top: mediaSize.height - sb }
         : undefined;
-      const embeddedPage = await outDoc.embedPage(srcPage, boundingBox);
+      let embeddedPage;
+      try {
+        embeddedPage = await outDoc.embedPage(srcPage, boundingBox);
+      } catch (embedErr: unknown) {
+        // Página sin contenido (missing Contents) o corrupta: saltar esta celda
+        const msg = embedErr instanceof Error ? embedErr.message : '';
+        if (msg.includes('missing Contents') || msg.includes('Contents')) {
+          continue;
+        }
+        throw embedErr;
+      }
 
       const srcSize = { width: embeddedPage.width, height: embeddedPage.height };
       const baseScaleX = cell.width / srcSize.width;
