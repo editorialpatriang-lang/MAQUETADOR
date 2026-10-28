@@ -7,6 +7,7 @@ import { calculatePerfectBoundLayout } from '@/lib/pdf/imposition/perfectbound';
 import { calculateCardsLayout } from '@/lib/pdf/imposition/cards';
 import { calculateCutStackLayout } from '@/lib/pdf/imposition/cutstack';
 import { calculateWorkAndTurnLayout } from '@/lib/pdf/imposition/workandturn';
+import { calculateNestingLayout } from '@/lib/pdf/imposition/nesting';
 import { calculateMarks } from '@/lib/pdf/marks';
 import type { ImpositionLayout } from '@/types/imposition';
 
@@ -29,6 +30,11 @@ function getLayout(
       return calculateWorkAndTurnLayout(pageCount, pageW, pageH, store.sheet, false);
     case 'workandtumble':
       return calculateWorkAndTurnLayout(pageCount, pageW, pageH, store.sheet, true);
+    case 'nesting':
+      return calculateNestingLayout(
+        Array.from({ length: pageCount }, (_, i) => ({ width: pageW, height: pageH, index: i })),
+        store.sheet,
+      );
     default:
       return calculateBookletLayout(pageCount, pageW, pageH, store.booklet, store.sheet, { creepVisualScale: 1 });
   }

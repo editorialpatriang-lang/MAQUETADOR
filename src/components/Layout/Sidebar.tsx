@@ -36,6 +36,7 @@ function ControlsForType() {
           { value: 'cutstack', label: 'Cut & Stack' },
           { value: 'workandturn', label: 'Work & Turn' },
           { value: 'workandtumble', label: 'Work & Tumble' },
+          { value: 'nesting', label: 'Nesting (irregular)' },
         ]}
       />
       {impositionType === 'booklet' && <BookletControls />}

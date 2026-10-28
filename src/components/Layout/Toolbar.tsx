@@ -7,6 +7,7 @@ import { calculatePerfectBoundLayout } from '@/lib/pdf/imposition/perfectbound';
 import { calculateCardsLayout } from '@/lib/pdf/imposition/cards';
 import { calculateCutStackLayout } from '@/lib/pdf/imposition/cutstack';
 import { calculateWorkAndTurnLayout } from '@/lib/pdf/imposition/workandturn';
+import { calculateNestingLayout } from '@/lib/pdf/imposition/nesting';
 import type { ImpositionLayout } from '@/types/imposition';
 
 function getLayout(store: ReturnType<typeof useDocumentStore.getState>): ImpositionLayout {
@@ -24,6 +25,11 @@ function getLayout(store: ReturnType<typeof useDocumentStore.getState>): Imposit
       return calculateWorkAndTurnLayout(pageCount, originalPageWidth, originalPageHeight, sheet, false);
     case 'workandtumble':
       return calculateWorkAndTurnLayout(pageCount, originalPageWidth, originalPageHeight, sheet, true);
+    case 'nesting':
+      return calculateNestingLayout(
+        Array.from({ length: pageCount }, (_, i) => ({ width: originalPageWidth, height: originalPageHeight, index: i })),
+        sheet,
+      );
     default:
       return calculateBookletLayout(pageCount, originalPageWidth, originalPageHeight, booklet, sheet);
   }
