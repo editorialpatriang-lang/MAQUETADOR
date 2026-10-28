@@ -68,7 +68,8 @@ export async function exportPdf(
     for (const cell of sheet.cells) {
       if (cell.pageIndex < 0 || cell.pageIndex >= srcDoc.getPageCount()) continue;
 
-      const srcPage = srcDoc.getPage(cell.pageIndex);
+      try {
+        const srcPage = srcDoc.getPage(cell.pageIndex);
       const mediaSize = srcPage.getSize();
       const sb = sourceBleed && sourceBleed > 0 ? sourceBleed : 0;
       const boundingBox = sb > 0
@@ -78,12 +79,10 @@ export async function exportPdf(
       try {
         embeddedPage = await outDoc.embedPage(srcPage, boundingBox);
       } catch (embedErr: unknown) {
-        // Página sin contenido (missing Contents) o corrupta: saltar esta celda
-        const msg = embedErr instanceof Error ? embedErr.message : '';
-        if (msg.includes('missing Contents') || msg.includes('Contents')) {
-          continue;
-        }
-        throw embedErr;
+        // Página sin contenido (missing Contents), corrupta o ilegible:
+        // saltar esta celda en lugar de abortar toda la exportación.
+        console.warn('Se omite página sin contenido:', cell.pageIndex, embedErr);
+        continue;
       }
 
       const srcSize = { width: embeddedPage.width, height: embeddedPage.height };
@@ -157,6 +156,10 @@ export async function exportPdf(
           height: drawH,
           rotate: degrees(rotation),
         });
+      }
+      } catch (cellErr: unknown) {
+        console.warn('Se omite celda por error:', cell.pageIndex, cellErr);
+        continue;
       }
     }
 
