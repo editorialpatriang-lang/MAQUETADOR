@@ -1,4 +1,4 @@
-export type ImpositionType = 'booklet';
+export type ImpositionType = 'booklet' | 'nup';
 
 export type Unit = 'mm' | 'cm' | 'in';
 
@@ -44,6 +44,13 @@ export interface BookletConfig {
   autoCreep: boolean;
   manualCreep: number;
   paperGsm: number;
+}
+
+export interface NUpConfig {
+  columns: number;
+  rows: number;
+  allowRotation: boolean;
+  autoFill: boolean;
 }
 
 export type BindingStyle = 'none' | 'wire-o' | 'spiral' | 'binder';

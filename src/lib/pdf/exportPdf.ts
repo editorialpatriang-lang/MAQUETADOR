@@ -1,4 +1,4 @@
-import { PDFDocument, rgb, cmyk, pushGraphicsState, popGraphicsState, clip, endPath, rectangle } from 'pdf-lib';
+import { PDFDocument, rgb, cmyk, pushGraphicsState, popGraphicsState, clip, endPath, rectangle, degrees } from 'pdf-lib';
 import type { ProductionMarks, ImpositionLayout } from '@/types/imposition';
 import { calculateMarks } from './marks';
 
@@ -20,8 +20,9 @@ export async function exportPdf(
   grainDirection?: string,
   bleedMode?: string,
   extendColor?: string,
+  sourceBleed?: number,
 ): Promise<Uint8Array> {
-  const srcDoc = await PDFDocument.load(originalPdfBytes, { ignoreEncryption: false });
+  const srcDoc = await PDFDocument.load(originalPdfBytes, { ignoreEncryption: true });
   const outDoc = await PDFDocument.create();
 
   if (marksConfig.pdfxOutput) {
@@ -36,15 +37,31 @@ export async function exportPdf(
     const sheetHPoints = sheetH;
 
     if (marksConfig.pdfxOutput) {
-      const bleedBox = { left: 0, bottom: 0, right: sheetW, top: sheetH };
-      page.setBleedBox(bleedBox.left, bleedBox.bottom, bleedBox.right, bleedBox.top);
-
-      const trimBox = {
-        left: margins,
-        bottom: margins,
-        right: sheetW - margins,
-        top: sheetH - margins,
+      // TrimBox/BleedBox por página: se calculan a partir del bounding box
+      // de las celdas impresas, no del pliego completo. Esto es correcto
+      // para PDF/X-4: TrimBox = área final de corte, BleedBox = TrimBox + bleed.
+      const bleed = marksConfig.bleed || 0;
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      for (const cell of sheet.cells) {
+        if (cell.pageIndex < 0) continue;
+        minX = Math.min(minX, cell.x);
+        // cell.y es desde arriba; convertir a coordenadas PDF (desde abajo)
+        minY = Math.min(minY, sheetHPoints - cell.y - cell.height);
+        maxX = Math.max(maxX, cell.x + cell.width);
+        maxY = Math.max(maxY, sheetHPoints - cell.y);
+      }
+      // Si no hay celdas válidas, usar el pliego completo como fallback
+      if (!isFinite(minX)) {
+        minX = 0; minY = 0; maxX = sheetW; maxY = sheetH;
+      }
+      const trimBox = { left: minX, bottom: minY, right: maxX, top: maxY };
+      const bleedBox = {
+        left: Math.max(0, minX - bleed),
+        bottom: Math.max(0, minY - bleed),
+        right: Math.min(sheetW, maxX + bleed),
+        top: Math.min(sheetH, maxY + bleed),
       };
+      page.setBleedBox(bleedBox.left, bleedBox.bottom, bleedBox.right, bleedBox.top);
       page.setTrimBox(trimBox.left, trimBox.bottom, trimBox.right, trimBox.top);
     }
 
@@ -52,9 +69,14 @@ export async function exportPdf(
       if (cell.pageIndex < 0 || cell.pageIndex >= srcDoc.getPageCount()) continue;
 
       const srcPage = srcDoc.getPage(cell.pageIndex);
-      const embeddedPage = await outDoc.embedPage(srcPage);
+      const mediaSize = srcPage.getSize();
+      const sb = sourceBleed && sourceBleed > 0 ? sourceBleed : 0;
+      const boundingBox = sb > 0
+        ? { left: sb, bottom: sb, right: mediaSize.width - sb, top: mediaSize.height - sb }
+        : undefined;
+      const embeddedPage = await outDoc.embedPage(srcPage, boundingBox);
 
-      const srcSize = srcPage.getSize();
+      const srcSize = { width: embeddedPage.width, height: embeddedPage.height };
       const baseScaleX = cell.width / srcSize.width;
       const baseScaleY = cell.height / srcSize.height;
       const baseScale = Math.min(baseScaleX, baseScaleY);
@@ -63,6 +85,9 @@ export async function exportPdf(
       const drawH = srcSize.height * baseScale;
       const offsetX = cell.x + (cell.width - drawW) / 2;
       const offsetY = sheetHPoints - cell.y - cell.height + (cell.height - drawH) / 2;
+
+      // Rotación de la celda (0, 90, 180, 270)
+      const rotation = cell.rotation || 0;
 
       if (bleedMode === 'scale' && marksConfig.bleed > 0) {
         // Escalar para llenar zona de sangrado y recortar al área de página
@@ -83,6 +108,7 @@ export async function exportPdf(
           y: scaledOffsetY,
           width: scaledW,
           height: scaledH,
+          rotate: degrees(rotation),
         });
         page.pushOperators(popGraphicsState());
       } else if (bleedMode === 'extend' && marksConfig.bleed > 0) {
@@ -100,14 +126,26 @@ export async function exportPdf(
           y: offsetY,
           width: drawW,
           height: drawH,
+          rotate: degrees(rotation),
         });
-      } else {
-        // 'none' y 'crop': colocar tal cual (comportamiento histórico)
+      } else if (bleedMode === 'crop' && sourceBleed && sourceBleed > 0) {
+        // Recortar al área de página (sin sangrado): el bleed del origen
+        // ya se recortó al embeber (boundingBox con sb). Colocar sin escalar.
         page.drawPage(embeddedPage, {
           x: offsetX,
           y: offsetY,
           width: drawW,
           height: drawH,
+          rotate: degrees(rotation),
+        });
+      } else {
+        // 'none' y 'crop' sin sourceBleed: colocar tal cual
+        page.drawPage(embeddedPage, {
+          x: offsetX,
+          y: offsetY,
+          width: drawW,
+          height: drawH,
+          rotate: degrees(rotation),
         });
       }
     }

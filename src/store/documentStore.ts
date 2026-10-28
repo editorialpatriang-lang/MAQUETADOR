@@ -8,10 +8,12 @@ import type {
   SheetConfig,
   GripperConfig,
   SheetPreset,
+  NUpConfig,
 } from '@/types/imposition';
 import { SHEET_PRESETS } from '@/types/imposition';
 
 const DEFAULT_BOOKLET: BookletConfig = { signatureSize: 0, autoCreep: false, manualCreep: 0, paperGsm: 130 };
+const DEFAULT_NUP: NUpConfig = { columns: 2, rows: 2, allowRotation: true, autoFill: true };
 const DEFAULT_MARKS: ProductionMarks = { cropMarks: true, cropMarkLength: 20, cropMarkOffset: 6, cropMarkThickness: 0.25, registrationMarks: false, bleed: 0, colorBar: false, colorBarType: 'CMYK', pdfxOutput: false, pdfxProfile: 'FOGRA39', foldMarks: false, bindingStyle: 'none', collatingMarks: false, signatureNumbering: false, overprintPreview: false };
 // MegaA3 en horizontal (480 x 330 mm), coherente con orientation: 'landscape'.
 // setSheetPreset respeta esta orientacion al aplicar cualquier otro preset.
@@ -25,9 +27,11 @@ interface DocumentState {
   fileSize: number;
   originalPageWidth: number;
   originalPageHeight: number;
+  originalBleed: number;
 
   impositionType: ImpositionType;
   booklet: BookletConfig;
+  nup: NUpConfig;
   sheet: SheetConfig;
   marks: ProductionMarks;
   unit: Unit;
@@ -42,6 +46,7 @@ interface DocumentState {
   reset: () => void;
   setImpositionType: (type: ImpositionType) => void;
   setBookletConfig: (config: Partial<BookletConfig>) => void;
+  setNUpConfig: (config: Partial<NUpConfig>) => void;
   setSheetConfig: (config: Partial<SheetConfig>) => void;
   setSheetOrientation: (orientation: Orientation) => void;
   setSheetPreset: (preset: SheetPreset) => void;
@@ -63,9 +68,11 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   fileSize: 0,
   originalPageWidth: 595.28,
   originalPageHeight: 841.89,
+  originalBleed: 0,
 
   impositionType: 'booklet',
   booklet: DEFAULT_BOOKLET,
+  nup: DEFAULT_NUP,
   sheet: DEFAULT_SHEET,
   marks: DEFAULT_MARKS,
   unit: 'mm',
@@ -83,16 +90,48 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       const { PDFDocument } = await import('pdf-lib');
       const arrayBuffer = await file.arrayBuffer();
 
-      const pdfDoc = await PDFDocument.load(arrayBuffer, { ignoreEncryption: false });
+      let pdfDoc;
+      try {
+        pdfDoc = await PDFDocument.load(arrayBuffer, { ignoreEncryption: false });
+      } catch (encErr: unknown) {
+        const encMsg = encErr instanceof Error ? encErr.message : '';
+        if (encMsg.includes('encrypted') || encMsg.includes('password')) {
+          // Intentar con ignoreEncryption para PDFs con permisos restrictivos
+          try {
+            pdfDoc = await PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
+          } catch {
+            throw encErr;
+          }
+        } else {
+          throw encErr;
+        }
+      }
       const pageCount = pdfDoc.getPageCount();
 
       let pw = 595.28;
       let ph = 841.89;
+      let detectedBleed = 0;
       if (pageCount > 0) {
         const firstPage = pdfDoc.getPage(0);
-        const size = firstPage.getSize();
-        pw = size.width;
-        ph = size.height;
+        const media = firstPage.getMediaBox();
+        const trim = firstPage.getTrimBox();
+        const bleedBox = firstPage.getBleedBox();
+        // Sangrado recuperado del archivo: diferencia entre MediaBox (o
+        // BleedBox) y TrimBox, asumiendo trim centrado.
+        const bleedX = (media.width - trim.width) / 2;
+        const bleedY = (media.height - trim.height) / 2;
+        const fromBleedBoxX = (bleedBox.width - trim.width) / 2;
+        const fromBleedBoxY = (bleedBox.height - trim.height) / 2;
+        const candidates = [bleedX, bleedY, fromBleedBoxX, fromBleedBoxY].filter((v) => v > 0.5);
+        detectedBleed = candidates.length ? Math.min(...candidates) : 0;
+        // Tamaño de página = TrimBox (tamaño final), no MediaBox.
+        if (trim.width > 0 && trim.height > 0 && (trim.width !== media.width || trim.height !== media.height)) {
+          pw = trim.width;
+          ph = trim.height;
+        } else {
+          pw = media.width;
+          ph = media.height;
+        }
       }
 
       set({
@@ -100,9 +139,13 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
         pageCount,
         originalPageWidth: pw,
         originalPageHeight: ph,
+        originalBleed: detectedBleed,
         isProcessing: false,
         currentSheetIndex: 0,
       });
+      if (detectedBleed > 0) {
+        set((st) => ({ marks: { ...st.marks, bleed: detectedBleed } }));
+      }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error desconocido';
       const isEncrypted =
@@ -127,8 +170,10 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       fileSize: 0,
       originalPageWidth: 595.28,
       originalPageHeight: 841.89,
+      originalBleed: 0,
       impositionType: 'booklet',
       booklet: DEFAULT_BOOKLET,
+      nup: DEFAULT_NUP,
       sheet: DEFAULT_SHEET,
       marks: DEFAULT_MARKS,
       unit: 'mm',
@@ -142,6 +187,9 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
 
   setBookletConfig: (config) =>
     set((s) => ({ booklet: { ...s.booklet, ...config }, currentSheetIndex: 0 })),
+
+  setNUpConfig: (config) =>
+    set((s) => ({ nup: { ...s.nup, ...config }, currentSheetIndex: 0 })),
 
   setSheetConfig: (config) =>
     set((s) => ({ sheet: { ...s.sheet, ...config }, currentSheetIndex: 0 })),
