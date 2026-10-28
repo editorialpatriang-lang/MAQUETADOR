@@ -44,17 +44,17 @@ export function BookletControls() {
   return (
     <div className="space-y-4">
       <NumberInput
-        label="Encuadernación"
-        value={booklet.signatureSize}
-        onChange={(v) => setBookletConfig({ signatureSize: Math.round(v) })}
+        label="Pliegos por cuadernillo"
+        value={Math.round(booklet.signatureSize / 4) || 0}
+        onChange={(v) => setBookletConfig({ signatureSize: Math.round(v) * 4 })}
         min={0}
-        max={pageCount || 100}
-        step={4}
+        max={Math.ceil((pageCount || 4) / 4)}
+        step={1}
       />
       <p className="text-xs text-gray-400 -mt-2">
         {booklet.signatureSize <= 0
           ? '1 cuadernillo con todas las páginas.'
-          : `${numCuadernillos} cuadernillo${numCuadernillos !== 1 ? 's' : ''} de ${sigSize} págs c/u${snappedNote}.`}{' '}
+          : `${numCuadernillos} cuadernillo${numCuadernillos !== 1 ? 's' : ''} de ${Math.round(booklet.signatureSize / 4)} pliego${Math.round(booklet.signatureSize / 4) !== 1 ? 's' : ''} c/u${snappedNote}.`}{' '}
         Tamaño del pliego: {sigSheets} {sigSheets === 1 ? 'hoja' : 'hojas'}.
         {blanks > 0 && booklet.autoFill && ` Se agregan ${blanks} en blanco al final del último cuadernillo.`}
       </p>
