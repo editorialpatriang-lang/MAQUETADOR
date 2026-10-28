@@ -53,6 +53,14 @@ export interface NUpConfig {
   autoFill: boolean;
 }
 
+export interface HeaderFooterConfig {
+  enabled: boolean;
+  headerText: string;
+  footerText: string;
+  fontSize: number;
+  color: string;
+}
+
 export type BindingStyle = 'none' | 'wire-o' | 'spiral' | 'binder';
 
 export interface ProductionMarks {
@@ -71,6 +79,7 @@ export interface ProductionMarks {
   collatingMarks: boolean;
   signatureNumbering: boolean;
   overprintPreview: boolean;
+  headerFooter: HeaderFooterConfig;
 }
 
 export interface GripperConfig {

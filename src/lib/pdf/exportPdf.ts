@@ -150,8 +150,29 @@ export async function exportPdf(
       }
     }
 
+    // Header/Footer
+    const hf = marksConfig.headerFooter;
+    if (hf && hf.enabled) {
+      const hfColor = hexToRgb(hf.color);
+      if (hf.headerText) {
+        page.drawText(hf.headerText, {
+          x: margins,
+          y: sheetHPoints - 12,
+          size: hf.fontSize,
+          color: hfColor,
+        });
+      }
+      if (hf.footerText) {
+        page.drawText(hf.footerText, {
+          x: margins,
+          y: 8,
+          size: hf.fontSize,
+          color: hfColor,
+        });
+      }
+    }
+
     drawProductionMarks(page, sheet, sheetW, sheetHPoints, marksConfig, margins, i, layout.sheets.length, {
-      fileName: fileName || '',
       grainDirection: grainDirection || '',
       pageCount: pageCount || 0,
       pdfxProfile: marksConfig.pdfxProfile,
